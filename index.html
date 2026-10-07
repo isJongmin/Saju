@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>사주풀이 노트</title>
+  <meta name="description" content="생년월일시로 사주팔자 원국, 대운, 올해운, 재물운, 연애운, 결혼운을 풀어봅니다.">
+  <meta name="theme-color" content="#1D2733">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D2733'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='%23EEF0EE' font-family='serif'%3E命%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <p class="brand">사주풀이 노트</p>
+      <h1>태어난 순간의 여덟 글자를 읽어봅니다</h1>
+      <p class="lede">생년월일과 태어난 시각을 넣으면 사주 원국과 대운, 올해의 흐름, 재물과 인연까지 풀어드립니다. 계산은 모두 이 브라우저 안에서 이루어지고 입력한 정보는 어디에도 전송되지 않습니다.</p>
+    </header>
+
+    <form id="form" class="entry" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="name">이름 <span class="opt">선택</span></label>
+        <input id="name" name="name" type="text" maxlength="20" placeholder="결과 화면에 표시됩니다">
+      </div>
+
+      <fieldset class="field">
+        <legend>성별</legend>
+        <div class="seg">
+          <input type="radio" id="g-m" name="gender" value="M" checked><label for="g-m">남성</label>
+          <input type="radio" id="g-f" name="gender" value="F"><label for="g-f">여성</label>
+        </div>
+        <p class="hint">대운의 진행 방향을 정하는 데 쓰입니다.</p>
+      </fieldset>
+
+      <div class="row">
+        <div class="field">
+          <label for="birth">생년월일 <span class="opt">양력</span></label>
+          <input id="birth" name="birth" type="date" min="1912-01-01" max="2049-12-31" required>
+        </div>
+        <div class="field">
+          <label for="time">태어난 시각</label>
+          <input id="time" name="time" type="time" value="12:00">
+          <label class="check"><input type="checkbox" id="time-unknown"> 시각을 몰라요</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="city">태어난 곳</label>
+        <select id="city" name="city"></select>
+        <p class="hint">한국 표준시는 동경 135도 기준이라, 실제 태양 시각과 약 30분 차이가 납니다. 출생지 경도로 이를 보정합니다. 서머타임과 1954~1961년 표준시 변경도 자동 반영됩니다.</p>
+      </div>
+
+      <details class="advanced">
+        <summary>세부 기준</summary>
+        <fieldset class="field">
+          <legend>밤 11시~12시 출생의 일주</legend>
+          <div class="seg">
+            <input type="radio" id="z-next" name="zi" value="next" checked><label for="z-next">다음 날로 보기</label>
+            <input type="radio" id="z-same" name="zi" value="same"><label for="z-same">당일로 보기 (야자시)</label>
+          </div>
+          <p class="hint">학파마다 다릅니다. 잘 모르면 기본값을 쓰세요.</p>
+        </fieldset>
+      </details>
+
+      <p class="note">음력 생일은 아직 지원하지 않습니다. 양력 날짜로 바꿔서 입력해 주세요.</p>
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <button type="submit" class="primary">사주 풀어보기</button>
+    </form>
+
+    <section id="result" class="result" hidden aria-live="polite">
+      <div class="result-head">
+        <h2 id="r-title"></h2>
+        <p id="r-meta" class="meta"></p>
+        <div class="result-actions">
+          <button type="button" id="edit" class="ghost">다시 입력</button>
+          <button type="button" id="share" class="ghost">결과 링크 복사</button>
+        </div>
+      </div>
+
+      <div id="chart" class="chart" role="table" aria-label="사주 원국"></div>
+      <p id="boundary" class="warn" hidden></p>
+
+      <div class="elements">
+        <h3>오행 분포</h3>
+        <div id="elements" class="el-bars"></div>
+        <p id="strength" class="sub"></p>
+      </div>
+
+      <div class="reading">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div id="panel" class="panel" role="tabpanel"></div>
+      </div>
+
+      <div class="daewoon">
+        <h3>대운 흐름</h3>
+        <p class="sub" id="dw-sub"></p>
+        <ol id="dw-list" class="dw-list"></ol>
+      </div>
+
+      <div class="months">
+        <h3 id="months-title"></h3>
+        <ol id="months" class="month-grid"></ol>
+      </div>
+
+      <div class="ask">
+        <h3>더 궁금한 점</h3>
+        <div id="chips" class="chips"></div>
+        <div id="answers" class="answers"></div>
+        <p class="sub">직접 질문을 입력해 답을 받는 AI 상담은 준비 중입니다.</p>
+      </div>
+
+      <p class="disclaimer">사주 해석은 명리학의 전통 규칙을 단순화한 것으로 재미와 참고용입니다. 중요한 결정은 스스로의 판단과 전문가 조언을 기준으로 하세요.</p>
+    </section>
+
+    <footer class="foot">
+      <p>절기 시각은 천문 공식으로 직접 계산하며 오차는 약 15분 이내입니다.</p>
+    </footer>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
