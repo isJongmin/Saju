@@ -3,6 +3,7 @@ import {
   BRANCH_ELEMENT, ZODIAC, TEN_GODS, stemElement, tenGod, branchTenGod, twelveStage,
 } from './core.js';
 import { buildReading, QUESTIONS, answer, scoreWord, SINSAL, POS_AREA, ELEMENT_PLAIN } from './interpret.js';
+import { buildDomains } from './domains.js';
 
 const CITIES = [
   ['seoul', '서울', 126.98], ['busan', '부산', 129.08], ['daegu', '대구', 128.60], ['incheon', '인천', 126.70],
@@ -12,8 +13,8 @@ const CITIES = [
   ['none', '보정하지 않음 (표준시 그대로)', null],
 ];
 const TABS = [
-  ['overall', '전체운'], ['year', '올해운'], ['wealth', '재물운'], ['love', '연애운'],
-  ['marriage', '결혼운'], ['career', '직업운'], ['health', '건강운'],
+  ['overall', '종합'], ['love', '연애운'], ['marriage', '결혼운'], ['wealth', '재물운'],
+  ['career', '직업운'], ['health', '건강운'], ['year', '올해운'],
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -138,17 +139,12 @@ function run(inp, animate) {
   const an = analyze(saju);
   const { now, year } = sajuNow();
   const R = buildReading(saju, an, year, now);
-  state = { inp, saju, an, R, year, now };
+  const D = buildDomains(saju, an, R, year, now);
+  state = { inp, saju, an, R, D, year, now, tab: 'overall', lifeExpanded: false };
 
   renderHead();
   renderChart();
-  renderSummary();
-  lifeExpanded = false;
-  renderLife();
-  renderSinsal();
-  renderElements();
-  renderTabs('overall');
-  renderMonths();
+  renderTabs();
   renderChips();
 
   form.hidden = true;
@@ -211,30 +207,36 @@ function renderChart() {
   }).join('');
 }
 
-function renderSummary() {
-  const { R } = state;
-  $('keywords').innerHTML = list(R.keywords);
-  $('summary').textContent = R.summary;
-  $('strengths').innerHTML = list(R.strengths);
-  $('weaknesses').innerHTML = list(R.weaknesses);
-  $('yongsin').textContent = R.yongsinTip;
-  $('now').innerHTML = R.now.map((t) => `<p>${esc(t)}</p>`).join('');
+/* ---------- 탭 패널 ---------- */
+const block = (title, body, cls = '') => `<section class="block ${cls}">${title ? `<h3>${title}</h3>` : ''}${body}</section>`;
+const ul = (items, cls = '') => `<ul class="points ${cls}">${list(items)}</ul>`;
+const chips = (kw) => `<ul class="keywords">${list(kw)}</ul>`;
 
-  const yrs = (arr, empty) => (arr.length
-    ? arr.map((a) => `<li><span class="y">${a.y}</span><span>${esc(R.yearReason(a))}</span></li>`).join('')
-    : `<li class="empty">${empty}</li>`);
-  $('good-years').innerHTML = yrs(R.goodYears, '두드러지게 좋은 해는 없습니다.');
-  $('caution-years').innerHTML = yrs(R.cautionYears, '크게 조심할 해는 보이지 않습니다.');
+function yearCards(arr, empty) {
+  if (!arr.length) return `<p class="sub">${empty}</p>`;
+  return `<ul class="ycards">${arr.map((a) => `
+    <li class="ycard ${pillCls(a.score)}">
+      <div class="yc-head"><span class="y">${a.y}</span><span class="yc-name">${esc(a.name)}${a.age ? `, ${a.age}세` : ''}</span>${pill(a.score)}</div>
+      <p>${esc(a.why)}</p>
+      <p class="yc-tip">${esc(a.tip)}</p>
+    </li>`).join('')}</ul>`;
 }
 
-let lifeExpanded = false;
-function renderLife() {
-  const { R } = state;
-  const items = R.timeline;
+function timingBlock(t) {
+  if (!t) return '';
+  if (t.note) return block(t.title, `<p>${esc(t.note)}</p>`);
+  return block(t.title, `
+    <div class="two-col">
+      <div><h4>기회의 해</h4>${yearCards(t.good, '두드러지게 좋은 해는 없습니다. 꾸준함이 답인 10년입니다.')}</div>
+      <div><h4>조심할 해</h4>${yearCards(t.caution, '크게 조심할 해는 보이지 않습니다.')}</div>
+    </div>`);
+}
+
+function timelineHtml() {
+  const items = state.R.timeline;
   const curIdx = items.findIndex((t) => t.tense === 'present');
-  // 기본: 지나온 시기 + 현재 + 다가올 2개 구간
-  const limit = lifeExpanded ? items.length : (curIdx >= 0 ? curIdx + 3 : 3);
-  $('timeline').innerHTML = items.slice(0, limit).map((t) => `
+  const limit = state.lifeExpanded ? items.length : (curIdx >= 0 ? curIdx + 3 : 3);
+  return `<ol class="timeline">${items.slice(0, limit).map((t) => `
     <li class="t-item ${t.tense}"${t.tense === 'present' ? ' aria-current="true"' : ''}>
       <div class="t-head">
         <span class="t-range">${t.range}</span>
@@ -245,73 +247,116 @@ function renderLife() {
       <div class="t-body">
         <div class="t-title">${esc(t.title)}</div>
         <p>${esc(t.text.replace(/^[^.]*의 시기\. /, ''))}</p>
+        ${t.advice ? `<p class="t-advice">${esc(t.advice)}</p>` : ''}
       </div>
-    </li>`).join('');
-  $('more-life').hidden = limit >= items.length;
+    </li>`).join('')}</ol>
+    ${limit < items.length ? '<button type="button" class="ghost" data-action="more-life">이후 흐름 더 보기</button>' : ''}`;
 }
-$('more-life').addEventListener('click', () => { lifeExpanded = true; renderLife(); });
 
-function renderSinsal() {
-  const { R } = state;
+function sinsalHtml() {
   const byKey = new Map();
-  for (const s of R.sinsal) {
+  for (const s of state.R.sinsal) {
     if (!byKey.has(s.key)) byKey.set(s.key, []);
     byKey.get(s.key).push(POS_AREA[s.pos]);
   }
   const order = [...byKey.keys()].sort((a, b) => Number(SINSAL[b].good) - Number(SINSAL[a].good));
-  $('sinsal').innerHTML = order.length
-    ? order.map((k) => `<li class="${SINSAL[k].good ? 'good' : 'bad'}">
-        <span class="s-name">${SINSAL[k].name}</span>
-        <span class="s-where">${byKey.get(k).join(', ')} 자리에 있음</span>
-        <span>${esc(SINSAL[k].text)}</span>
-      </li>`).join('')
-    : '<li>특별히 두드러지는 기운 없이 고르게 타고났습니다. 운의 흐름을 따라 무난하게 풀리는 사주입니다.</li>';
+  if (!order.length) return '<p>특별히 두드러지는 기운 없이 고르게 타고났습니다. 운의 흐름을 따라 무난하게 풀리는 사주입니다.</p>';
+  return `<ul class="sinsal">${order.map((k) => `<li class="${SINSAL[k].good ? 'good' : 'bad'}">
+    <span class="s-name">${SINSAL[k].name}</span>
+    <span class="s-where">${byKey.get(k).join(', ')} 자리에 있음</span>
+    <span>${esc(SINSAL[k].text)}</span></li>`).join('')}</ul>`;
 }
 
-function renderElements() {
+function elementsHtml() {
   const { an } = state;
   const max = Math.max(...an.elemCount, 1);
-  $('elements').innerHTML = an.elemCount.map((n, i) => `
+  return `<div class="el-bars">${an.elemCount.map((n, i) => `
     <div class="el-row">
       <span class="name">${ELEMENT_PLAIN[i]}</span>
       <span class="el-track"><span class="el-fill" style="display:block;width:${(n / max) * 100}%;background:var(--${ELEMENTS[i]})"></span></span>
       <span class="n">${n}</span>
-    </div>`).join('');
+    </div>`).join('')}</div>`;
 }
 
-function renderTabs(active) {
+function overallHtml() {
+  const { R, D } = state;
+  return [
+    block(null, `<div class="ilju">
+      <p class="ilju-nick">${esc(D.ilju.nick)}</p>
+      <h3>${esc(D.ilju.title)}</h3>
+      ${D.ilju.paras.map((t) => `<p>${esc(t)}</p>`).join('')}
+    </div>`),
+    block('한눈에 보기', `${chips(R.keywords)}<p class="summary">${esc(R.summary)}</p>`),
+    block(null, `<div class="two-col">
+      <div><h3>타고난 강점</h3>${ul(R.strengths, 'good')}</div>
+      <div><h3>보완하면 좋은 점</h3>${ul(R.weaknesses, 'weak')}</div>
+    </div><p class="tip">${esc(R.yongsinTip)}</p>`),
+    block('지금 나의 상황', `<div class="prose">${R.now.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`),
+    block('인생의 흐름', `<p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>${timelineHtml()}`),
+    timingBlock(D.overallTiming),
+    block('타고난 특별한 기운', sinsalHtml()),
+    block('기운의 비율', elementsHtml()),
+  ].join('');
+}
+
+function monthsHtml(months) {
+  const md = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}.${d.getUTCDate()}`; };
+  return `<ol class="month-list">${months.map((m) => `
+    <li class="${m.current ? 'current' : ''}"${m.current ? ' aria-current="true"' : ''}>
+      <div class="m-row">
+        <span class="m-span">${md(m.start)} ~ ${md(m.end - 86400000)}${m.current ? '<span class="m-tag">이번 달</span>' : ''}</span>
+        <span class="m-note">${esc(m.note)}</span>
+        ${pill(m.score)}
+      </div>
+      <p class="m-why">${esc(m.why)}</p>
+    </li>`).join('')}</ol>`;
+}
+
+function domainHtml(d) {
+  const secs = d.sections.map((sec) => {
+    if (sec.kind === 'months') return block(sec.title, monthsHtml(sec.items));
+    if (sec.kind === 'areas') {
+      return block(sec.title, `<ul class="areas">${sec.items.map((a) => `
+        <li><div class="area-head"><span class="area-label">${a.label}</span>${pill(a.score)}</div><p>${esc(a.text)}</p></li>`).join('')}</ul>`);
+    }
+    return block(sec.title, ul(sec.items));
+  });
+  return [
+    block(d.title || null, `${chips(d.keywords)}<p class="summary">${esc(d.summary)}</p>`, 'lead'),
+    ...secs,
+    timingBlock(d.timing),
+    d.advice ? block(null, `<p class="tip"><strong>조언</strong> ${esc(d.advice)}</p>`) : '',
+    d.note ? `<p class="sub">${esc(d.note)}</p>` : '',
+  ].join('');
+}
+
+function renderTabs() {
+  const active = state.tab;
   $('tabs').innerHTML = TABS.map(([id, label]) =>
-    `<button type="button" class="tab" role="tab" id="tab-${id}" aria-selected="${id === active}" data-tab="${id}">${label}</button>`).join('');
-  const [, label] = TABS.find((t) => t[0] === active);
-  const title = active === 'year' ? `${state.year}년의 운` : label;
+    `<button type="button" class="tab" role="tab" id="tab-${id}" aria-selected="${id === active}" aria-controls="panel" data-tab="${id}">${label}</button>`).join('');
   $('panel').setAttribute('aria-labelledby', `tab-${active}`);
-  $('panel').innerHTML = `<h3>${title}</h3>${state.R.tabs[active].map((t) => `<p>${esc(t)}</p>`).join('')}`;
+  $('panel').innerHTML = active === 'overall' ? overallHtml() : domainHtml(state.D[active]);
+}
+function selectTab(id, focus) {
+  state.tab = id;
+  renderTabs();
+  if (focus) $(`tab-${id}`).focus();
+  const top = $('tabs').getBoundingClientRect().top;
+  if (top < 0) $('tabs').scrollIntoView({ block: 'start' });
 }
 $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
-  if (b) renderTabs(b.dataset.tab);
+  if (b && state) selectTab(b.dataset.tab, false);
 });
 $('tabs').addEventListener('keydown', (e) => {
-  if (!['ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+  if (!['ArrowRight', 'ArrowLeft'].includes(e.key) || !state) return;
   const ids = TABS.map((t) => t[0]);
-  const cur = ids.indexOf(document.activeElement?.dataset?.tab);
-  if (cur < 0) return;
-  const next = ids[(cur + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length];
-  renderTabs(next);
-  $(`tab-${next}`).focus();
+  const cur = ids.indexOf(state.tab);
+  selectTab(ids[(cur + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length], true);
 });
-
-function renderMonths() {
-  const { R, year } = state;
-  $('months-title').textContent = `${year}년 월별 흐름`;
-  const md = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}.${d.getUTCDate()}`; };
-  $('months').innerHTML = R.months.map((m) => `
-    <li class="${m.current ? 'current' : ''}"${m.current ? ' aria-current="true"' : ''}>
-      <span class="m-span">${md(m.start)} ~ ${md(m.end - 86400000)}${m.current ? '<span class="m-tag">이번 달</span>' : ''}</span>
-      <span class="m-note">${esc(m.note)}</span>
-      ${pill(m.score)}
-    </li>`).join('');
-}
+$('panel').addEventListener('click', (e) => {
+  if (e.target.closest('[data-action="more-life"]')) { state.lifeExpanded = true; renderTabs(); }
+});
 
 function renderChips() {
   $('answers').innerHTML = '';

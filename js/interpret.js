@@ -110,8 +110,8 @@ const CAREER = {
 
 /* ---------------- 공통 계산 ---------------- */
 
-const groupOfStem = (ds, s) => TEN_GOD_GROUP[tenGod(ds, s)];
-const groupOfBranch = (ds, b) => TEN_GOD_GROUP[branchTenGod(ds, b)];
+export const groupOfStem = (ds, s) => TEN_GOD_GROUP[tenGod(ds, s)];
+export const groupOfBranch = (ds, b) => TEN_GOD_GROUP[branchTenGod(ds, b)];
 
 // 운의 오행이 용신/기신과 맞는지 (-2 ~ +2)
 export function luckScore(an, stem, branch) {
@@ -138,6 +138,28 @@ const yearName = (p) => `${STEM_COLOR[p.stem]} ${ZODIAC[p.branch]}의 해`;
 const ageRange = (d) => `${d.age}~${d.age + 9}세`;
 const yearRange = (d) => `${d.startYear}~${d.startYear + 9}년`;
 
+// 운에 들어오는 오행이 내 사주에 미치는 영향 (이유 설명)
+export function elementEffect(an, stem, branch, tense = 'present') {
+  const se = stemElement(stem), be = BRANCH_ELEMENT[branch];
+  const els = [...new Set([se, be])];
+  const v = { past: ['들어와', '풀렸을', '했을'], present: ['들어와', '풀리기', '하기'], future: ['들어와', '풀리기', '하기'] }[tense];
+  const out = [];
+  const yong = els.filter((e) => e === an.yongsin);
+  const gi = els.filter((e) => e === an.gisin);
+  if (yong.length) out.push(`내게 부족한 ${ELEMENT_PLAIN[an.yongsin]}의 기운이 ${v[0]} 막혀 있던 일이 ${tense === 'past' ? '풀렸을 가능성이 큽니다' : '풀리기 쉽습니다'}.`);
+  if (gi.length) out.push(`이미 넉넉한 ${ELEMENT_PLAIN[an.gisin]}의 기운이 더해져 ${tense === 'past' ? '무리하거나 한쪽으로 치우쳤을 수 있습니다' : '무리하거나 한쪽으로 치우치기 쉽습니다'}.`);
+  if (!yong.length && !gi.length) out.push(`${els.length === 2 ? `${josa(ELEMENT_PLAIN[els[0]], '과/와')} ${ELEMENT_PLAIN[els[1]]}` : ELEMENT_PLAIN[els[0]]}의 기운이 들어오지만 내 사주의 균형을 크게 흔들지는 않습니다.`);
+  return out.join(' ');
+}
+
+const PERIOD_ADVICE = {
+  비겁: '사람을 가려 사귀고 돈 거래와 보증은 피하는 것이 좋습니다.',
+  식상: '하고 싶은 일을 작게라도 시작해 결과물로 남기는 것이 좋습니다.',
+  재성: '들어오는 만큼 지출 계획을 세우고 무리한 투자는 나눠서 하는 것이 좋습니다.',
+  관성: '책임을 피하지 말고 자격과 평판을 쌓는 데 힘을 쓰는 것이 좋습니다.',
+  인성: '배움과 자격에 투자하고 도와주는 사람과의 관계를 소중히 하는 것이 좋습니다.',
+};
+
 // 대운 한 구간 해석 (tense: past | present | future)
 function periodText(saju, an, d, tense) {
   const ds = saju.pillars.day.stem, db = saju.pillars.day.branch;
@@ -146,11 +168,13 @@ function periodText(saju, an, d, tense) {
   const end = { past: '이었습니다', present: '입니다', future: '이 될 것입니다' }[tense];
   const themes = g1 === g2 ? GROUP[g1].theme : `${GROUP[g1].theme}, ${GROUP[g2].theme}`;
   const parts = [`${themes}의 시기. ${GROUP[g2].flow}${end}.`];
+  if (g1 !== g2) parts.push(`앞 5년은 ${GROUP[g1].theme}, 뒤 5년은 ${GROUP[g2].theme}의 색이 더 짙${tense === 'past' ? '었습니다' : '습니다'}.`);
   const mood = { past: `전반적으로 ${moodOf(sc)} 시기였습니다.`, present: `전반적으로 ${moodOf(sc)} 시기입니다.`, future: `전반적으로 ${moodOf(sc)} 시기로 보입니다.` }[tense];
-  parts.push(mood);
-  if (isClash(d.branch, db)) parts.push({ past: '거주지, 직장, 관계에 큰 변화가 있었을 가능성이 높습니다.', present: '거주지, 직장, 관계에 큰 변화가 생기기 쉬운 때입니다.', future: '거주지, 직장, 관계에 큰 변화가 올 수 있습니다.' }[tense]);
-  if (isHarmony(d.branch, db)) parts.push({ past: '좋은 인연이나 협력자를 만났을 가능성이 높습니다.', present: '좋은 인연과 협력자가 들어오는 때입니다.', future: '좋은 인연과 협력자가 들어올 것입니다.' }[tense]);
-  return { range: ageRange(d), years: yearRange(d), title: themes, text: parts.join(' '), score: sc, tense };
+  parts.push(mood, elementEffect(an, d.stem, d.branch, tense));
+  if (isClash(d.branch, db)) parts.push({ past: '나와 부딪히는 기운이라 거주지, 직장, 관계에 큰 변화가 있었을 가능성이 높습니다.', present: '나와 부딪히는 기운이라 거주지, 직장, 관계에 큰 변화가 생기기 쉬운 때입니다.', future: '나와 부딪히는 기운이라 거주지, 직장, 관계에 큰 변화가 올 수 있습니다.' }[tense]);
+  if (isHarmony(d.branch, db)) parts.push({ past: '나와 잘 맞는 기운이라 좋은 인연이나 협력자를 만났을 가능성이 높습니다.', present: '나와 잘 맞는 기운이라 좋은 인연과 협력자가 들어오는 때입니다.', future: '나와 잘 맞는 기운이라 좋은 인연과 협력자가 들어올 것입니다.' }[tense]);
+  const advice = tense === 'past' ? null : PERIOD_ADVICE[g2];
+  return { range: ageRange(d), years: yearRange(d), title: themes, text: parts.join(' '), advice, score: sc, tense };
 }
 
 /* ---------------- 종합 해석 ---------------- */
@@ -339,7 +363,13 @@ export function buildReading(saju, an, nowYear, nowMs = Date.now()) {
     const end = i < 11 ? yf.months[i + 1].start : yearFortune(nowYear + 1).months[0].start;
     const mg = groupOfBranch(ds, m.branch);
     const note = isClash(m.branch, db) ? '변화와 다툼 주의' : isHarmony(m.branch, db) ? '인연과 협력' : GROUP[mg].theme;
-    return { start: m.start, end, score: Math.max(-2, Math.min(2, s)), note, current: nowMs >= m.start && nowMs < end };
+    const se = stemElement(m.stem), be = BRANCH_ELEMENT[m.branch];
+    const why = [GROUP[mg].flow + '이 강한 달입니다.'];
+    if ([se, be].includes(an.yongsin)) why.push('부족한 기운이 채워져 일이 수월하게 풀립니다.');
+    if ([se, be].includes(an.gisin)) why.push('넘치는 기운이 더해져 무리하거나 고집을 부리기 쉽습니다.');
+    if (isClash(m.branch, db)) why.push('나와 부딪히는 달이라 계약, 이사, 다툼에 특히 신중하세요.');
+    if (isHarmony(m.branch, db)) why.push('나와 잘 맞는 달이라 만남과 협력, 중요한 약속을 잡기 좋습니다.');
+    return { start: m.start, end, score: Math.max(-2, Math.min(2, s)), note, why: why.join(' '), current: nowMs >= m.start && nowMs < end };
   });
 
   return R;
@@ -407,4 +437,4 @@ export function answer(id, saju, an, R, nowYear) {
   }
 }
 
-export { SINSAL, POS_AREA, POS_LABEL, ELEMENT_PLAIN };
+export { SINSAL, POS_AREA, POS_LABEL, ELEMENT_PLAIN, ELEMENT_KEYWORD, STEM_COLOR, DAY_MASTER, GROUP, HEALTH, LUCKY, CAREER, yearName, scoreAdj };

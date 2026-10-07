@@ -83,66 +83,10 @@
       <div id="chart" class="chart" role="table" aria-label="사주 원국"></div>
       <p id="boundary" class="warn" hidden></p>
 
-      <section class="block" aria-labelledby="h-summary">
-        <h3 id="h-summary">한눈에 보기</h3>
-        <ul id="keywords" class="keywords"></ul>
-        <p id="summary" class="summary"></p>
-      </section>
-
-      <section class="block two" aria-label="강점과 보완할 점">
-        <div>
-          <h3>타고난 강점</h3>
-          <ul id="strengths" class="points good"></ul>
-        </div>
-        <div>
-          <h3>보완하면 좋은 점</h3>
-          <ul id="weaknesses" class="points weak"></ul>
-        </div>
-        <p id="yongsin" class="tip"></p>
-      </section>
-
-      <section class="block" aria-labelledby="h-now">
-        <h3 id="h-now">지금 나의 상황</h3>
-        <div id="now" class="prose"></div>
-      </section>
-
-      <section class="block" aria-labelledby="h-life">
-        <h3 id="h-life">인생의 흐름</h3>
-        <p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>
-        <ol id="timeline" class="timeline"></ol>
-        <button type="button" id="more-life" class="ghost">이후 흐름 더 보기</button>
-      </section>
-
-      <section class="block two" aria-label="앞으로 10년">
-        <div>
-          <h3>앞으로 10년, 기회의 해</h3>
-          <ul id="good-years" class="years"></ul>
-        </div>
-        <div>
-          <h3>조심할 해</h3>
-          <ul id="caution-years" class="years"></ul>
-        </div>
-      </section>
-
-      <section class="block" aria-labelledby="h-sinsal">
-        <h3 id="h-sinsal">타고난 특별한 기운</h3>
-        <ul id="sinsal" class="sinsal"></ul>
-      </section>
-
-      <section class="block" aria-labelledby="h-elements">
-        <h3 id="h-elements">기운의 비율</h3>
-        <div id="elements" class="el-bars"></div>
-      </section>
-
-      <section class="reading block" aria-label="분야별 운세">
-        <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="reading">
+        <nav class="tabs" role="tablist" id="tabs" aria-label="운세 분야"></nav>
         <div id="panel" class="panel" role="tabpanel"></div>
-      </section>
-
-      <section class="block" aria-labelledby="months-title">
-        <h3 id="months-title"></h3>
-        <ol id="months" class="month-list"></ol>
-      </section>
+      </div>
 
       <section class="ask block" aria-labelledby="h-ask">
         <h3 id="h-ask">더 궁금한 점</h3>
