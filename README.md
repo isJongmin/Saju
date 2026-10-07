@@ -9,7 +9,8 @@ index.html          화면
 styles.css          스타일
 js/core.js          계산 엔진 (절기, 4주, 십성, 12운성, 대운, 세운/월운, 신강약, 음력, 삼재)
 js/interpret.js     판단 기준, 종합 해석, 월운, 추가 질문 답변
-js/domains.js       일주, 분야별(연애, 결혼, 재물, 직업, 건강, 올해) 해석
+js/domains.js       일주, 분야별(연애, 결혼, 재물, 직업, 건강, 올해) 해석, 올해 점수
+js/lexicon.js       세분화 해석 사전 (십성 10종, 일간x신강약, 계절, 격국, 분야x십성)
 js/app.js           입력 폼, 렌더링, 공유 링크(URL 해시)
 tests/              엔진 테스트 (node:test)
 ```

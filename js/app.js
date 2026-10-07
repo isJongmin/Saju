@@ -128,6 +128,7 @@ form.addEventListener('submit', (e) => {
 });
 
 $('edit').addEventListener('click', () => {
+  document.body.classList.remove('has-result');
   form.hidden = false;
   $('result').hidden = true;
   form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -166,6 +167,7 @@ function run(inp, animate) {
   renderChips();
 
   form.hidden = true;
+  document.body.classList.add('has-result');
   const res = $('result');
   res.hidden = false;
   res.classList.toggle('reveal', animate);
@@ -189,6 +191,12 @@ function renderHead() {
     meta += `. 계산 기준 시각 ${pad(st.h)}:${pad(st.min)} (${corr}${saju.dst ? ', 서머타임 1시간 제외' : ''})`;
   }
   $('r-meta').textContent = meta;
+  const { D, R } = state;
+  $('ilju-nick').textContent = D.ilju.nick;
+  $('ilju-title').textContent = D.ilju.title;
+  $('hero-keywords').innerHTML = list(R.keywords);
+  $('lead').textContent = R.lead;
+  renderScores();
 
   const warn = $('boundary');
   if (saju.nearBoundaryHours < 2) {
@@ -198,6 +206,22 @@ function renderHead() {
     warn.textContent = `계절이 바뀌는 시각인 ${near} 근처에 태어났습니다. 출생 시각이 조금만 달라도 결과가 바뀔 수 있으니 정확한 시각을 확인해 보세요.`;
     warn.hidden = false;
   } else warn.hidden = true;
+}
+
+function renderScores() {
+  const { scores } = state.D;
+  const C = 2 * Math.PI * 54;
+  const word = (n) => (n >= 85 ? '아주 좋음' : n >= 72 ? '좋음' : n >= 58 ? '무난함' : n >= 45 ? '주의' : '신중');
+  $('scores').innerHTML = `
+    <div class="ring" role="img" aria-label="${scores.year}년 총운 ${scores.total}점">
+      <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="54" fill="none" stroke-width="10"/>
+      <circle class="bar" cx="60" cy="60" r="54" fill="none" stroke-width="10" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - scores.total / 100)).toFixed(1)}"/></svg>
+      <div class="ring-num"><b>${scores.total}</b><span>${scores.year} 총운</span></div>
+    </div>
+    <ul class="sbars">${scores.items.map((it) => `
+      <li><span>${it.label}</span><span class="sbar"><i style="width:${it.score}%"></i></span><b>${it.score}</b></li>`).join('')}
+    </ul>
+    <p class="score-cap">${scores.year}년 기준, 올해 들어오는 기운이 내 사주에 맞는 정도를 100점으로 바꾼 값입니다. 총운은 ${word(scores.total)}.</p>`;
 }
 
 function glyph(kind, v) {
@@ -239,7 +263,7 @@ function yearCards(arr, empty) {
       <div class="yc-head"><span class="y">${a.y}</span><span class="yc-name">${esc(a.name)}${a.age ? `, ${a.age}세` : ''}</span>${pill(a.score)}${a.samjae ? `<span class="badge">${a.samjae}</span>` : ''}</div>
       ${a.showTheme ? `<p class="yc-theme">${esc(a.theme)}</p>` : ''}
       <p>${esc(a.why)}</p>
-      <p class="yc-tip">${esc(a.tip)}</p>
+      ${a.tip ? `<p class="yc-tip">${esc(a.tip)}</p>` : ''}
     </li>`).join('')}</ul>`;
 }
 
@@ -247,7 +271,7 @@ function timingBlock(t) {
   if (!t) return '';
   if (t.note) return block(t.title, `<p>${esc(t.note)}</p>`);
   return block(t.title, `
-    <div class="two-col">
+    <div class="two-col years-split">
       <div><h4>기회의 해</h4>${yearCards(t.good, '두드러지게 좋은 해는 없습니다. 꾸준함이 답인 10년입니다.')}</div>
       <div><h4>조심할 해</h4>${yearCards(t.caution, '크게 조심할 해는 보이지 않습니다.')}</div>
     </div>`);
@@ -302,9 +326,9 @@ function elementsHtml() {
 const defs = (rows, cls = '') => `<dl class="defs ${cls}">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
 
 function pairHtml(strengths, weak, boost) {
-  return block(null, `<div class="two-col">
-      <div><h3>강점</h3>${ul(strengths, 'good')}</div>
-      <div><h3>약점</h3>${ul(weak, 'weak')}</div>
+  return block('강점과 약점', `<div class="two-col">
+      <div class="pros"><h3>강점</h3>${ul(strengths, 'good')}</div>
+      <div class="cons"><h3>약점</h3>${ul(weak, 'weak')}</div>
     </div>
     <div class="boost"><h3>보강하면 좋은 것</h3>${ul(boost, 'fix')}</div>`);
 }
@@ -321,16 +345,13 @@ function flowHtml(items, title = '과거, 현재, 미래') {
 function overallHtml() {
   const { R, D } = state;
   return [
-    block(null, `<div class="ilju">
-      <p class="ilju-nick">${esc(D.ilju.nick)}</p>
-      <h3>${esc(D.ilju.title)}</h3>
-      ${D.ilju.paras.map((t) => `<p>${esc(t)}</p>`).join('')}
-    </div>`),
-    block('한눈에 보기', `${chips(R.keywords)}<p class="summary">${esc(R.summary)}</p>`),
+    block('한눈에 보기', `<p class="summary">${esc(R.summary)}</p><p class="sub">${esc(R.season)}</p>`, 'lead'),
+    block(`타고난 그릇: ${esc(R.geok.type)}`, `<p>${esc(R.geok.text)}</p>`),
     block('당신은 이런 사람입니다', ul(R.persona)),
     pairHtml(R.strengths, R.weaknesses, R.boosts),
-    block('인생의 흐름', `<p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>${timelineHtml()}`),
+    block(`일주 풀이: ${esc(D.ilju.title)}`, `<div class="ilju">${D.ilju.paras.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`),
     block('지금 나의 상황', `<div class="prose">${R.now.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`),
+    block('인생의 흐름', `<p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>${timelineHtml()}`),
     timingBlock(D.overallTiming),
     block('타고난 특별한 기운', sinsalHtml()),
     block('나를 돕는 귀인', ul(R.noble)),

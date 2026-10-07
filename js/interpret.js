@@ -4,6 +4,7 @@ import {
   stemElement, tenGod, branchTenGod, isClash, isHarmony, harmonyOf, sinsal, collectSinsal, yearFortune, mod,
   twelveStage, samjae, NOBLE,
 } from './core.js';
+import { GOD, GEOK, DM_STRENGTH, SEASON_OF_BRANCH, SEASON_REL } from './lexicon.js';
 
 export const pillarName = (p) => `${STEMS[p.stem]}${BRANCHES[p.branch]}`;
 export const pillarKo = (p) => `${STEMS_KO[p.stem]}${BRANCHES_KO[p.branch]}`;
@@ -232,20 +233,6 @@ function periodText(saju, an, d, tense, idx = 0) {
 
 /* ---------------- 성향 사전 ---------------- */
 
-const PERSONA_OUT = {
-  비겁: '밖에서는 당당하고 자기 주장이 분명한 사람으로 보입니다.',
-  식상: '밖에서는 말이 잘 통하고 재치 있는 사람으로 보입니다.',
-  재성: '밖에서는 현실적이고 일 처리가 빠른 사람으로 보입니다.',
-  관성: '밖에서는 반듯하고 믿을 만한 사람으로 보입니다.',
-  인성: '밖에서는 차분하고 생각이 깊은 사람으로 보입니다.',
-};
-const PERSONA_IN = {
-  비겁: '속으로는 남에게 지기 싫어하고 내 영역을 지키려는 마음이 강합니다.',
-  식상: '속으로는 하고 싶은 말과 해보고 싶은 일이 늘 많습니다.',
-  재성: '속으로는 손해 보지 않으려는 계산이 빠르고 실속을 챙깁니다.',
-  관성: '속으로는 스스로에게 엄격하고 남의 평가를 신경 씁니다.',
-  인성: '속으로는 인정받고 이해받고 싶은 마음이 큽니다.',
-};
 const PERSONA_PEOPLE = {
   비겁: '사람들 사이에서는 동료이자 경쟁자로, 함께 뛰는 관계를 편하게 여깁니다.',
   식상: '사람들 사이에서는 분위기를 띄우고 아이디어를 내는 역할을 맡기 쉽습니다.',
@@ -303,12 +290,27 @@ export function buildReading(saju, an, nowYear, nowMs = Date.now()) {
   /* 한눈에 보기 */
   const goodSins = [...new Set(sins.filter((s) => SINSAL[s.key].good).map((s) => SINSAL[s.key].name))];
   R.keywords = [dm.key, `${josa(GROUP[topGroup].key, '이/가')} 강함`, `${josa(ELEMENT_KEYWORD[an.yongsin], '이/가')} 필요함`, ...goodSins.slice(0, 2)];
-  R.summary = `당신은 ${dm.image}의 기운을 타고났습니다. ${dm.text}`;
+  // 십성 10종 단위 판단: 가중치는 core.analyze와 같다 (월지 3, 일지 1.5, 나머지 1)
+  const godW = {};
+  for (const it of an.items) godW[it.god] = (godW[it.god] || 0) + ({ monthBranch: 3, dayBranch: 1.5 }[it.pos] || 1);
+  const godRank = Object.entries(godW).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  const gods = {
+    top: godRank[0], second: godRank[1] || godRank[0],
+    face: TEN_GODS[tenGod(ds, P.month.stem)], inner: TEN_GODS[branchTenGod(ds, db)], geok: TEN_GODS[branchTenGod(ds, P.month.branch)],
+  };
+  R.gods = gods;
+  const season = SEASON_OF_BRANCH[P.month.branch];
+  const rel = ['same', 'child', 'wealth', 'officer', 'mother'][mod(BRANCH_ELEMENT[P.month.branch] - de, 5)];
+  R.lead = DM_STRENGTH[ds][an.strength];
+  R.summary = `당신은 ${season}에 태어난 ${dm.image}입니다. ${dm.text}`;
+  R.season = `${season}에 태어난 ${dm.image}. ${SEASON_REL[rel]}`;
+  R.geok = { type: GEOK[gods.geok][0], text: GEOK[gods.geok][1] };
+  R.talent = [...new Set([GOD[gods.top].talent, GOD[gods.second].talent])];
 
   /* 성향 */
   R.persona = [
-    PERSONA_OUT[groupOfStem(ds, P.month.stem)],
-    PERSONA_IN[groupOfBranch(ds, db)],
+    GOD[gods.face].face,
+    GOD[gods.inner].inner,
     PERSONA_PEOPLE[topGroup],
     PERSONA_STRESS[an.strength],
   ];
@@ -327,8 +329,7 @@ export function buildReading(saju, an, nowYear, nowMs = Date.now()) {
   ];
 
   /* 강점, 보완점, 보강법 */
-  const strengths = [], weaknesses = [], boosts = [];
-  strengths.push(GROUP[topGroup].strength);
+  const strengths = [...R.talent], weaknesses = [], boosts = [];
   if (groups[1][1] >= 2) strengths.push(GROUP[groups[1][0]].strength);
   if (an.strength === '신강') strengths.push('기본 체력과 정신력이 강해 위기에서 쉽게 무너지지 않습니다.');
   else if (an.strength === '신약') strengths.push('주변과 협력하고 도움을 받아들이는 유연함이 있어 사람을 통해 성장합니다.');
@@ -337,7 +338,7 @@ export function buildReading(saju, an, nowYear, nowMs = Date.now()) {
     strengths.push(`${SINSAL[s.key].name}: ${SINSAL[s.key].text.split('.')[0]}.`);
   }
   if (groups[0][1] >= 4) { weaknesses.push(GROUP[topGroup].over); boosts.push(`${GROUP[topGroup].theme}에 쏠린 힘을 나누세요. 잘하는 것만 반복하기보다 반대 성향의 일, 사람과 일부러 섞이는 것이 균형을 잡아줍니다.`); }
-  for (const [g, v] of groups) if (v === 0) { weaknesses.push(GROUP[g].lack); boosts.push(GROUP_BOOST[g]); }
+  for (const [g, v] of groups) if (v === 0) { weaknesses.push(`${GROUP[g].lack.split('. ')[0].replace(/\.$/, '')}.`); boosts.push(GROUP_BOOST[g]); }
   if (an.elemCount[maxE] >= 4) weaknesses.push(`${josa(ELEMENT_PLAIN[maxE], '이/가')} ${an.elemCount[maxE]}개로 아주 많아 ${ELEMENT_KEYWORD[maxE]}의 성향이 극단으로 흐르기 쉽습니다.`);
   for (const e of lacksE) {
     // 없는 기운이 기신이면 '채우라'고 하지 않는다 (기신 설명과 모순 방지)

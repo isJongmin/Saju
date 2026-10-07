@@ -5,20 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>사주풀이 노트</title>
   <meta name="description" content="생년월일시로 사주팔자 원국, 대운, 올해운, 재물운, 연애운, 결혼운을 풀어봅니다.">
-  <meta name="theme-color" content="#1D2733">
+  <meta name="theme-color" content="#17142E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Hahmlet:wght@500;600;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231D2733'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='%23EEF0EE' font-family='serif'%3E命%3C/text%3E%3C/svg%3E">
 </head>
 <body>
+  <header class="sky">
+    <div class="sky-inner">
+      <p class="brand"><span class="brand-mark" aria-hidden="true"></span>사주풀이 노트</p>
+      <h1>태어난 순간의<br>여덟 글자를 읽어요</h1>
+      <p class="lede">생일과 태어난 시각만 넣으면 타고난 성향부터 올해의 흐름, 재물과 인연까지 풀어드려요. 계산은 이 브라우저 안에서만 이루어지고 어디에도 전송되지 않아요.</p>
+    </div>
+    <div class="moon" aria-hidden="true"></div>
+  </header>
+
   <main class="page">
-    <header class="masthead">
-      <p class="brand">사주풀이 노트</p>
-      <h1>태어난 순간의 여덟 글자를 읽어봅니다</h1>
-      <p class="lede">생년월일과 태어난 시각을 넣으면 사주 원국과 대운, 올해의 흐름, 재물과 인연까지 풀어드립니다. 계산은 모두 이 브라우저 안에서 이루어지고 입력한 정보는 어디에도 전송되지 않습니다.</p>
-    </header>
 
     <form id="form" class="entry" autocomplete="off" novalidate>
       <div class="field">
@@ -79,17 +83,29 @@
     </form>
 
     <section id="result" class="result" hidden aria-live="polite">
-      <div class="result-head">
-        <h2 id="r-title"></h2>
-        <p id="r-meta" class="meta"></p>
+      <div class="chartcard">
+        <div class="cc-head">
+          <h2 id="r-title"></h2>
+          <p id="r-meta" class="meta"></p>
+        </div>
+        <div id="chart" class="chart" role="table" aria-label="사주 원국"></div>
+        <div class="cc-ilju">
+          <p id="ilju-nick" class="ilju-nick"></p>
+          <p id="ilju-title" class="ilju-title"></p>
+        </div>
+        <ul id="hero-keywords" class="keywords on-dark"></ul>
         <div class="result-actions">
-          <button type="button" id="edit" class="ghost">다시 입력</button>
-          <button type="button" id="share" class="ghost">결과 링크 복사</button>
+          <button type="button" id="edit" class="ghost on-dark">다시 입력</button>
+          <button type="button" id="share" class="ghost on-dark">결과 링크 복사</button>
         </div>
       </div>
-
-      <div id="chart" class="chart" role="table" aria-label="사주 원국"></div>
       <p id="boundary" class="warn" hidden></p>
+
+      <section class="scorecard" aria-labelledby="sc-title">
+        <div id="scores" class="scores"></div>
+      </section>
+
+      <blockquote id="lead" class="lead-quote"></blockquote>
 
       <div class="reading">
         <nav class="tabs" role="tablist" id="tabs" aria-label="운세 분야"></nav>

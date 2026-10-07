@@ -8,6 +8,7 @@ import {
   yongName, giName, weakestElement, strongestElement, pick, STAGE_PHASE,
   ELEMENT_PLAIN, ELEMENT_KEYWORD, STEM_COLOR, GROUP, HEALTH, LUCKY, CAREER, yearName, scoreAdj,
 } from './interpret.js';
+import { GOD, GEOK, LOVE10, WEALTH_POS, DGOD, DTIP, STAGE_POWER } from './lexicon.js';
 
 /* ---------------- 일주 ---------------- */
 
@@ -96,37 +97,6 @@ const DOMAIN_GROUP = {
   overall: () => Object.fromEntries(Object.entries(GROUP).map(([k, v]) => [k, `${v.flow}입니다.`])),
 };
 
-// 대운(10년) 흐름용: 시제를 붙일 수 있도록 '~하는' 꼴
-const PERIOD_PHRASE = {
-  love: (male) => ({
-    비겁: '친구, 동료 사이에서 인연이 생기지만 경쟁자도 함께 나타나는',
-    식상: '표현이 늘고 매력이 잘 드러나 먼저 다가가기 좋은',
-    재성: male ? '이성 인연이 직접 들어오는' : '연애보다 현실과 실속을 챙기게 되는',
-    관성: male ? '일과 책임 때문에 연애가 뒤로 밀리기 쉬운' : '이성 인연이 직접 들어오는',
-    인성: '소개나 주변의 추천으로 편안한 인연이 닿는',
-  }),
-  marriage: (male) => ({
-    비겁: '결혼보다 내 삶의 독립이 먼저가 되는',
-    식상: male ? '가정과 자녀 계획이 구체화되는' : '자녀 인연이 들고 관계에서 내 목소리가 커지는',
-    재성: male ? '배우자 인연이 들어오는' : '집, 살림 같은 현실적인 준비가 진행되는',
-    관성: male ? '가정에 대한 책임감이 커지는' : '배우자 인연이 들어오는',
-    인성: '집안 어른의 도움이나 집, 혼인 같은 문서 일이 생기는',
-  }),
-  wealth: () => ({
-    비겁: '돈이 사람을 통해 나가고 지출과 경쟁이 늘어나는',
-    식상: '재능과 기술을 팔아 수입을 만들기 좋은',
-    재성: '수입과 재물의 기회가 직접 들어오는',
-    관성: '조직을 통한 안정된 수입과 승진의 보상이 따르는',
-    인성: '현금보다 계약, 문서, 부동산 같은 자산 일이 생기는',
-  }),
-  career: () => ({
-    비겁: '독립이나 동업을 꿈꾸고 경쟁이 치열해지는',
-    식상: '새 프로젝트와 창작으로 능력을 보여주는',
-    재성: '실적과 성과로 평가받는',
-    관성: '승진, 자리 이동, 책임이 커지는',
-    인성: '공부와 자격, 윗사람의 도움이 따르는',
-  }),
-};
 const FLOW_SUBJ = { love: '연애의 흐름', marriage: '가정의 흐름', wealth: '돈의 흐름', career: '일의 흐름', health: '몸의 흐름' };
 const FLOW_PRED = {
   up: { past: '순탄한 편이었습니다', present: '순탄한 편입니다', future: '순탄할 것으로 보입니다' },
@@ -135,7 +105,7 @@ const FLOW_PRED = {
 };
 const CLASH_PH = {
   love: '관계가 크게 흔들리거나 바뀌는', marriage: '이사, 거리두기처럼 가정에 변화가 생기는', wealth: '수입 구조가 크게 바뀌는',
-  career: '직장이나 맡은 자리가 바뀌는', health: '사고나 갑작스러운 몸의 변화가 생기는',
+  career: '직장이나 맡은 자리가 바뀌는', health: '사고나 갑작스러운 몸의 변화를 겪는',
 };
 const HARM_PH = {
   love: '마음 맞는 사람과 자연스럽게 가까워지는', marriage: '인연이 맺어지고 가정이 안정되는', wealth: '좋은 협력자를 통해 돈이 들어오는',
@@ -145,6 +115,19 @@ const HARM_PH = {
 const GOD_TONE = {
   비견: '내 힘으로 차근차근', 겁재: '경쟁 속에서 거칠게', 식신: '여유 있게 즐기며', 상관: '틀을 깨며 날카롭게', 편재: '크고 불규칙하게',
   정재: '꾸준하고 안정적으로', 편관: '압박 속에서 급하게', 정관: '규칙과 절차를 따라', 편인: '남다른 방식으로', 정인: '도움을 받으며 편안하게',
+};
+// 그해 지지의 십성으로 본 한 해의 성격 (종합 탭의 '지금 나의 상황'과 다른 각도)
+const YEAR_GOD = {
+  비견: '올해는 내 힘으로 서야 하는 해입니다. 남의 도움보다 스스로 판단하고 움직일 일이 많아집니다.',
+  겁재: '올해는 경쟁과 승부가 붙는 해입니다. 사람도 돈도 들고 나는 폭이 커집니다.',
+  식신: '올해는 여유를 찾고 하고 싶은 일을 펼치는 해입니다. 손에 잡히는 결과물이 생깁니다.',
+  상관: '올해는 말과 아이디어가 앞서는 해입니다. 새 판을 짜고 싶은 마음이 커집니다.',
+  편재: '올해는 바깥 활동과 돈의 움직임이 커지는 해입니다. 기회도 지출도 함께 늘어납니다.',
+  정재: '올해는 차곡차곡 성과를 거두는 해입니다. 성실함이 숫자로 돌아옵니다.',
+  편관: '올해는 압박과 책임이 커지는 해입니다. 버티는 만큼 위치가 올라갑니다.',
+  정관: '올해는 평가와 인정의 해입니다. 직함, 자격, 공식적인 자리가 생기기 쉽습니다.',
+  편인: '올해는 생각이 깊어지고 방향을 다시 고민하는 해입니다. 새로운 공부에 끌립니다.',
+  정인: '올해는 도움과 지지를 받는 해입니다. 문서와 계약, 배움에 좋은 일이 따릅니다.',
 };
 const EVENT_END = { past: '일이 있었을 가능성이 큽니다', present: '일이 생기기 쉽습니다', future: '일이 생길 수 있습니다' };
 const PERIOD_END = { past: '시기였습니다', present: '시기입니다', future: '시기가 옵니다' };
@@ -199,76 +182,85 @@ function scoreFor(ctx, info, domain) {
 }
 
 // 연도 해석 문장 목록 (중복 제거를 위해 문장 단위 배열로 반환)
+// 첫 문장은 '분야 x 십성 10종' 표현이라 같은 해라도 탭마다 다른 이야기가 된다.
 function whySentences(ctx, info, domain) {
-  const { male, an } = ctx;
+  const { male, an, ds } = ctx;
   const out = [];
   const els = [stemElement(info.stem), BRANCH_ELEMENT[info.branch]];
   const variant = (info.y || 0) + domain.length;
+  const gStem = TEN_GODS[tenGod(ds, info.stem)], gBr = info.god;
+  if (domain === 'overall') {
+    const map = DOMAIN_GROUP.overall();
+    out.push(info.g1 !== info.g2 ? `상반기에는 ${map[info.g1]} 하반기에는 ${map[info.g2]}` : map[info.g2]);
+  } else {
+    const ph = DGOD[domain](male);
+    out.push(gStem !== gBr && ph[gStem] !== ph[gBr] ? `상반기는 ${ph[gStem]} 흐름, 하반기는 ${ph[gBr]} 해입니다.` : `${ph[gBr]} 해입니다.`);
+  }
   if (domain === 'health') {
     if (els.includes(an.gisin)) out.push(`${giName(an)}의 기운이 더해져 ${HEALTH[an.gisin]}에 무리가 오기 쉽습니다.`);
     if (els.includes(an.yongsin)) out.push(`${yongName(an)}의 기운이 채워져 ${HEALTH[an.yongsin]} 쪽이 편안해지고 회복이 빠릅니다.`);
-    if (!out.length) out.push('기운의 균형이 크게 흔들리지 않는 해입니다.');
-    if (info.clash) out.push('나와 부딪히는 기운이라 사고, 부상, 갑작스러운 몸의 변화에 주의가 필요합니다.');
   } else {
-    const map = DOMAIN_GROUP[domain](male);
-    if (info.g1 !== info.g2 && map[info.g1] !== map[info.g2]) out.push(`상반기에는 ${map[info.g1]} 하반기에는 ${map[info.g2]}`);
-    else out.push(map[info.g2]);
-    out.push(`변화는 ${GOD_TONE[info.god]} 찾아옵니다.`);
-    if (domain === 'love') {
-      if (info.peach) out.push('매력이 드러나 사람들의 시선이 모이는 해입니다.');
-      if (info.harm) out.push('배우자 자리와 잘 맞는 기운이 들어와 관계가 자연스럽게 깊어집니다.');
-      if (info.clash) out.push('배우자 자리와 부딪히는 기운이라 다툼이나 이별, 관계의 큰 변화가 생기기 쉽습니다.');
-      if (info.wonjin) out.push('서운함과 오해가 쌓이기 쉬운 기운이 있습니다.');
-    } else if (domain === 'marriage') {
-      if (info.harm) out.push('배우자 자리와 합이 드는 해라 결혼 인연이 맺어지기 쉬운 대표적인 시기입니다.');
-      if (info.clash) out.push('배우자 자리가 흔들리는 해라 이사, 별거, 갈등처럼 가정에 변화가 생기기 쉽습니다.');
-      if (info.wonjin) out.push('배우자와 이유 없는 서운함이 생기기 쉽습니다.');
-    }
     out.push(elementEffect(an, info.stem, info.branch, 'future', variant));
-    {
-      if (domain === 'career' && info.horse) out.push('이동의 기운이 있어 부서 이동, 출장, 이직처럼 자리가 바뀌기 쉽습니다.');
-      if (domain === 'overall' && info.clash) out.push('나와 부딪히는 기운이라 이사, 이직, 관계 변화가 생기기 쉽습니다.');
-      if (domain === 'overall' && info.harm) out.push('나와 잘 맞는 기운이라 좋은 인연과 협력이 들어옵니다.');
-    }
   }
-  out.push(`한 해의 에너지는 ${STAGE_PHASE[info.stage]} 흐름입니다.`);
+  if (domain === 'love') {
+    if (info.peach) out.push('매력이 드러나 사람들의 시선이 모이는 해입니다.');
+    if (info.harm) out.push('배우자 자리와 잘 맞는 기운이 들어와 관계가 자연스럽게 깊어집니다.');
+    if (info.clash) out.push('배우자 자리와 부딪히는 기운이라 다툼이나 이별, 관계의 큰 변화가 생기기 쉽습니다.');
+    if (info.wonjin) out.push('서운함과 오해가 쌓이기 쉬운 기운이 있습니다.');
+  } else if (domain === 'marriage') {
+    if (info.harm) out.push('배우자 자리와 합이 드는 해라 결혼 인연이 맺어지기 쉬운 대표적인 시기입니다.');
+    if (info.clash) out.push('배우자 자리가 흔들리는 해라 이사, 별거, 갈등처럼 가정에 변화가 생기기 쉽습니다.');
+    if (info.wonjin) out.push('배우자와 이유 없는 서운함이 생기기 쉽습니다.');
+  } else if (domain === 'overall') {
+    if (info.clash) out.push('나와 부딪히는 기운이라 이사, 이직, 관계 변화가 생기기 쉽습니다.');
+    if (info.harm) out.push('나와 잘 맞는 기운이라 좋은 인연과 협력이 들어옵니다.');
+  } else {
+    if (info.clash) out.push(`${CLASH_PH[domain]} ${EVENT_END.future}.`);
+    if (info.harm) out.push(`${HARM_PH[domain]} ${EVENT_END.future}.`);
+    if (domain === 'career' && info.horse) out.push('이동의 기운이 있어 부서 이동, 출장, 이직처럼 자리가 바뀌기 쉽습니다.');
+    if (domain === 'wealth' && info.horse) out.push('움직이는 만큼 돈이 도는 해라 출장, 이동, 원거리 거래에서 기회가 생깁니다.');
+  }
+  if (domain === 'overall' || domain === 'health') out.push(`한 해의 에너지는 ${STAGE_PHASE[info.stage]} 흐름입니다.`);
   if (info.samjae && (domain === 'overall' || domain === 'health')) out.push(`${ZODIAC[ctx.P.year.branch]}띠의 ${info.samjae} 해라 큰 변화는 서두르지 않는 것이 좋습니다.`);
   return out.filter(Boolean);
 }
 
-// 여러 연도 카드에서 이미 나온 문장은 빼서 해마다 다른 설명이 보이게 한다
-function dedupeCards(cards) {
-  const seen = new Set();
+// 연도 카드에서 이미 나온 문장은 빼서 해마다 다른 설명이 보이게 한다.
+// used는 한 사람의 결과 전체에서 공유해 탭이 달라도 같은 문장이 반복되지 않게 한다.
+function dedupeCards(cards, used = new Set()) {
   for (const c of cards) {
     // 첫 문장(그 해의 주제)은 빼지 않고, 이미 나온 주제면 '다시 이어진다'로 바꿔 말한다
-    if (seen.has(c.sentences[0])) c.sentences[0] = c.themeAgain;
-    const fresh = c.sentences.filter((s) => !seen.has(s));
-    const kept = fresh.length >= 2 ? fresh : [...fresh, ...c.sentences.filter((s) => seen.has(s))].slice(0, Math.max(2, fresh.length));
-    kept.forEach((s) => seen.add(s));
+    if (used.has(c.sentences[0])) c.sentences[0] = c.themeAgain;
+    const fresh = c.sentences.filter((s) => !used.has(s));
+    const kept = fresh.length ? fresh : [c.sentences[0]];
+    kept.forEach((s) => used.add(s));
     c.why = kept.join(' ');
-    delete c.sentences;
-  }
-  // 조언도 겹치지 않게
-  const tipSeen = new Map();
-  for (const c of cards) {
-    const n = tipSeen.get(c.tipKey) || 0;
-    c.tip = c.tips[n % c.tips.length];
-    tipSeen.set(c.tipKey, n + 1);
-    delete c.tips; delete c.tipKey;
+    // 조언도 아직 쓰지 않은 것을 고른다
+    c.tip = c.tips.find((t) => !used.has(t)) || '';
+    if (c.tip) used.add(c.tip);
+    delete c.sentences; delete c.tips; delete c.themeAgain;
   }
   return cards;
+}
+
+// 종합 카드의 조언: 그해 가장 힘이 실리는 분야의 십성별 조언을 쓴다
+function bestDomain(ctx, info) {
+  return ['career', 'wealth', 'love', 'health'].map((dm) => [dm, scoreFor(ctx, info, dm)]).sort((a, b) => b[1] - a[1])[0][0];
 }
 
 function yearCard(ctx, y, domain) {
   const info = yearInfo(ctx, y);
   const score = scoreFor(ctx, info, domain);
   const kind = score >= 0 ? 'good' : 'bad';
+  const themeAgain = domain === 'overall'
+    ? (info.g1 === info.g2 ? `${GROUP[info.g2].theme}의 기운이 앞서 본 해처럼 다시 들어옵니다.` : `${GROUP[info.g1].theme}에서 ${josa(GROUP[info.g2].theme, '으로/로')} 넘어가는 흐름이 앞서 본 해처럼 다시 나타납니다.`)
+    : `앞서 본 해처럼 ${DGOD[domain](ctx.male)[info.god]} 흐름이 다시 옵니다.`;
   return {
     y, name: info.name, age: koreanAge(ctx.saju, y), score,
-    theme: GROUP[info.g2].theme, samjae: info.samjae,
-    themeAgain: info.g1 === info.g2 ? `${GROUP[info.g2].theme}의 기운이 앞서 본 해처럼 다시 들어옵니다.` : `${GROUP[info.g1].theme}에서 ${josa(GROUP[info.g2].theme, '으로/로')} 넘어가는 흐름이 앞서 본 해처럼 다시 나타납니다.`,
+    theme: GROUP[info.g2].theme, samjae: info.samjae, themeAgain,
     sentences: whySentences(ctx, info, domain),
-    tips: TIPS[domain][kind].map((t, i, a) => a[(i + ctx.seed) % a.length]), tipKey: kind,
+    // 그해 십성에 맞춘 조언을 먼저, 일반 조언은 예비로
+    tips: [...(DTIP[domain] ? [DTIP[domain][info.god]] : [DTIP[bestDomain(ctx, info)][info.god]]), ...TIPS[domain][kind].map((t, i, a) => a[(i + ctx.seed) % a.length])],
   };
 }
 
@@ -280,13 +272,13 @@ function timing(ctx, domain, { years = 10, from = ctx.nowYear, minAge = 0 } = {}
   }
   const good = all.filter((a) => a.score > 0).sort((a, b) => b.score - a.score || a.y - b.y).slice(0, 3).sort((a, b) => a.y - b.y);
   const caution = all.filter((a) => a.score < 0).sort((a, b) => a.score - b.score || a.y - b.y).slice(0, 2).sort((a, b) => a.y - b.y);
-  dedupeCards([...good, ...caution].sort((a, b) => a.y - b.y));
+  dedupeCards([...good, ...caution].sort((a, b) => a.y - b.y), ctx.used);
   return { good, caution };
 }
 
 // 분야별 과거, 현재, 미래 (대운 기준)
 function domainFlow(ctx, domain) {
-  const { saju, nowYear, male } = ctx;
+  const { saju, nowYear, male, ds } = ctx;
   const list = saju.daewoon.list;
   const cur = currentDaewoon(saju, nowYear);
   const idx = cur ? list.indexOf(cur) : -1;
@@ -295,26 +287,25 @@ function domainFlow(ctx, domain) {
   if (cur) picks.push([cur, 'present', '지금의 10년']);
   if (list[idx + 1]) picks.push([list[idx + 1], 'future', '다가올 10년']);
   if (!cur && list[1]) picks.push([list[1], 'future', '그다음 10년']);
-  const phrase = domain === 'health' ? null : PERIOD_PHRASE[domain](male);
-  let prevFirst = null;
+  const ph = DGOD[domain](male);
+  let prevKey = null;
   return picks.map(([p, tense, label]) => {
     const info = pillarInfo(ctx, p.stem, p.branch);
     const score = scoreFor(ctx, info, domain);
     const end = PERIOD_END[tense];
+    const gStem = TEN_GODS[tenGod(ds, p.stem)], gBr = info.god;
     const parts = [];
+    const key = `${gStem}|${gBr}`;
+    if (key === prevKey) parts.push(`앞선 10년과 같은 주제가 이어지지만, 이번에는 기운이 ${GOD_TONE[gBr]} 흘러가는 ${end}.`);
+    else if (gStem !== gBr && ph[gStem] !== ph[gBr]) parts.push(`앞 5년은 ${ph[gStem]} 시기, 뒤 5년은 ${ph[gBr]} ${end}.`);
+    else parts.push(`${ph[gBr]} ${end}.`);
+    prevKey = key;
     if (domain === 'health') {
-      parts.push(`몸의 에너지로 보면 ${STAGE_PHASE[info.stage]} ${end}.`);
+      parts.push(`몸의 에너지로 보면 ${STAGE_PHASE[info.stage]} 때입니다.`);
       const els = [stemElement(p.stem), BRANCH_ELEMENT[p.branch]];
-      if (els.includes(ctx.an.gisin)) parts.push(`${HEALTH[ctx.an.gisin]}에 무리가 가기 쉬운 ${end}.`);
-      else if (els.includes(ctx.an.yongsin)) parts.push(`약했던 ${HEALTH[ctx.an.yongsin]} 쪽이 힘을 얻는 ${end}.`);
-    } else {
-      const first = info.g1 !== info.g2 && phrase[info.g1] !== phrase[info.g2]
-        ? `앞 5년은 ${phrase[info.g1]} 시기, 뒤 5년은 ${phrase[info.g2]} ${end}.`
-        : `${phrase[info.g2]} ${end}.`;
-      const key = `${info.g1}|${info.g2}`;
-      parts.push(key === prevFirst ? `앞선 10년과 같은 주제가 이어지지만, 이번에는 기운이 ${GOD_TONE[info.god]} 흘러가는 ${end}.` : first);
-      prevFirst = key;
-      parts.push(`에너지로 보면 ${STAGE_PHASE[info.stage]} 때입니다.`);
+      const t1 = els.includes(ctx.an.gisin) ? `특히 ${josa(HEALTH[ctx.an.gisin], '이/가')} 무리하기 쉽습니다.`
+        : els.includes(ctx.an.yongsin) ? `약했던 ${HEALTH[ctx.an.yongsin]} 쪽이 힘을 얻습니다.` : null;
+      if (t1 && !ctx.used.has(t1)) { parts.push(t1); ctx.used.add(t1); }
     }
     const sign = score > 0 ? 'up' : score < 0 ? 'down' : 'mid';
     parts.push(`${josa(FLOW_SUBJ[domain], '이/가')} ${FLOW_PRED[sign][tense]}.`);
@@ -389,7 +380,8 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
   const ds = P.day.stem, db = P.day.branch, de = stemElement(ds);
   const male = saju.input.gender === 'M';
   const age = koreanAge(saju, nowYear);
-  const ctx = { saju, an, P, ds, db, male, nowYear, seed: R.seed };
+  const ctx = { saju, an, P, ds, db, male, nowYear, seed: R.seed, used: new Set() };
+  const gods = R.gods;
   const g = an.groupScore;
   const sins = R.sinsal;
   const hasSin = (k) => sins.some((s) => s.key === k);
@@ -407,10 +399,11 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
   const dayWonjin = others.some((p) => isWonjin(p.branch, db));
   const spouseG = groupOfBranch(ds, db);
   const D = {};
+  D.overallTiming = { title: '앞으로 10년, 좋은 해와 조심할 해', ...timing(ctx, 'overall') };
 
   /* 연애운 */
   {
-    const style = LOVE_STYLE[de];
+    const style = { key: LOVE10[ds][0], text: `당신은 ${LOVE10[ds][1]}` };
     const cnt = g[loveG];
     const strengths = [LOVE_STRENGTH[de]];
     if (hasSin('도화')) strengths.push('매력의 별이 있어 첫인상과 분위기로 호감을 얻습니다. 본인은 모르게 관심받는 경우가 많습니다.');
@@ -449,7 +442,7 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
       ],
       flow: domainFlow(ctx, 'love'),
       timing: { title: '앞으로 10년 연애 흐름', ...timing(ctx, 'love') },
-      advice: cnt === 0 ? '기다리기보다 사람을 만나는 자리에 꾸준히 나가는 것이 인연을 부르는 가장 확실한 방법입니다.' : '좋은 인연은 이미 주변에 있을 가능성이 큽니다. 서두르기보다 오래 본 사람을 다시 보세요.',
+      advice: cnt === 0 ? '기다리기보다 사람을 만나는 자리에 꾸준히 나가는 것이 인연을 부르는 가장 확실한 방법입니다.' : DTIP.love[gods.inner],
     };
   }
 
@@ -492,7 +485,7 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
       timing: age < 20
         ? { title: '결혼 시기', note: '아직 결혼을 논하기 이른 나이입니다. 위 내용은 타고난 배우자 성향으로 참고하세요.', good: [], caution: [] }
         : { title: '결혼하기 좋은 해', ...t },
-      advice: late ? '조건보다 생활 방식이 맞는지를 먼저 보세요. 함께 여행을 다녀보는 것이 좋은 시험이 됩니다.' : '좋은 인연이 오면 오래 재기보다 결정하는 쪽이 유리한 사주입니다.',
+      advice: `${late ? '조건보다 생활 방식이 맞는지를 먼저 보세요.' : '좋은 인연이 오면 오래 재기보다 결정하는 쪽이 유리한 사주입니다.'} ${DTIP.marriage[gods.inner]}`,
     };
   }
 
@@ -526,12 +519,19 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
       : an.strength === '신약' ? '적금, 연금, 우량 자산처럼 안정적인 방식이 맞습니다. 남의 말만 믿고 하는 투자는 피하세요.'
         : '안정 자산을 중심으로 일부만 공격적으로 운용하는 균형형이 맞습니다.');
     boost.push(`${josa(ELEMENT_PLAIN[an.yongsin], '과/와')} 관련된 분야, ${L.dir} 방향의 일터나 거래처가 재물운을 돕습니다.`);
+    const wPos = [];
+    for (const [pos, p] of pillarsArr) {
+      if ((pos !== 'day' && groupOfStem(ds, p.stem) === '재성') || groupOfBranch(ds, p.branch) === '재성') wPos.push(pos);
+    }
+    const moneyGod = ['편재', '정재'].filter((x) => an.godCount[x] > 0).sort((a, b) => an.godCount[b] - an.godCount[a])[0] || gods.top;
+    const channel = [GOD[moneyGod].money, ...[...new Set(wPos)].map((p) => WEALTH_POS[p])];
+    if (!wPos.length) channel.push('사주에 돈의 별이 직접 드러나 있지 않아, 운에서 돈의 기운이 들어오는 해에 수입이 몰리는 편입니다. 그 해를 놓치지 않는 것이 중요합니다.');
     D.wealth = {
       keywords: [type, g.재성 >= 2 && an.strength !== '신약' ? '큰 그릇' : g.재성 === 0 ? '실력이 곧 돈' : '꾸준히 쌓는 돈', g.비겁 >= 3 ? '지출 주의' : null, g.인성 >= 2 ? '문서와 부동산 인연' : null].filter(Boolean),
       summary: typeText,
       pair: { strengths, weak },
       boost,
-      sections: [],
+      sections: [{ title: '돈이 들어오는 통로', kind: 'list', items: channel }],
       flow: domainFlow(ctx, 'wealth'),
       timing: { title: '앞으로 10년 재물 흐름', ...timing(ctx, 'wealth') },
       advice: pick(['수입이 들어오는 날 일정 비율을 바로 다른 계좌로 옮기는 습관 하나가 이 사주의 재물운을 가장 크게 키웁니다.',
@@ -544,8 +544,9 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
   {
     const groups = Object.entries(g).sort((a, b) => b[1] - a[1]);
     const top = groups[0][0], second = groups[1][0];
-    const fit = [`가장 잘 맞는 일: ${CAREER[top]}`, `함께 살리면 좋은 재능: ${CAREER[second]}`];
-    const strengths = [`${WORK_STYLE[de]} 역할에서 가장 능력을 발휘합니다.`];
+    const fit = [...new Set([GOD[gods.top].work, GOD[gods.second].work])];
+    fit.push(`일의 방향으로 보면 ${CAREER[top]}과 잘 맞습니다.`);
+    const strengths = [R.geok.text];
     if (hasSin('문창귀인')) strengths.push('글, 기획, 강의처럼 머리를 쓰는 일에서 두각을 나타냅니다.');
     if (hasSin('역마')) strengths.push('이동이 많거나 해외, 무역, 여행과 관련된 일에서 기회가 큽니다.');
     if (hasSin('화개')) strengths.push('예술, 연구, 상담처럼 깊이 파고드는 일에서 남다른 집중력을 보입니다.');
@@ -564,14 +565,14 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
     const { weak, boost } = pairs(wp);
     boost.push(`${L.dir} 방향의 일터, ${L.color} 계열의 업무 소품이 일의 기운을 돕습니다. 면접이나 발표 날에도 활용해 보세요.`);
     D.career = {
-      keywords: [CAREER_KEY[top], hasSin('역마') ? '움직이는 일' : null, hasSin('문창귀인') ? '두뇌 직군' : null, an.strength === '신강' ? '결정권이 필요함' : an.strength === '신약' ? '사람 복으로 성장' : '적응력 좋음'].filter(Boolean),
-      summary: `당신은 ${GROUP[top].strength.replace(/습니다\.$/, '는 사람입니다.')} 여기에 ${josa(GROUP[second].key, '이/가')} 더해져, 두 가지를 함께 쓸 수 있는 일에서 가장 크게 성장합니다.`,
+      keywords: [R.geok.type, CAREER_KEY[top] !== R.geok.type ? CAREER_KEY[top] : null, hasSin('역마') ? '움직이는 일' : null, hasSin('문창귀인') ? '두뇌 직군' : null, an.strength === '신강' ? '결정권이 필요함' : an.strength === '신약' ? '사람 복으로 성장' : '적응력 좋음'].filter(Boolean),
+      summary: `당신은 ${R.geok.type} 그릇에 ${WORK_STYLE[de]} 역할이 잘 맞는 사람입니다. ${top === second ? `${josa(GROUP[top].key, '을/를')} 한껏 쓰는 일에서 가장 크게 성장합니다.` : `${josa(GROUP[top].key, '과/와')} ${josa(GROUP[second].key, '을/를')} 함께 쓸 수 있는 일에서 가장 크게 성장합니다.`}`,
       pair: { strengths, weak },
       boost,
       sections: [{ title: '잘 맞는 일', kind: 'list', items: fit }],
       flow: domainFlow(ctx, 'career'),
       timing: { title: '앞으로 10년 일과 진로 흐름', ...timing(ctx, 'career') },
-      advice: '사주에서 가장 강한 기운을 쓰는 일을 할 때 운이 가장 크게 열립니다. 지금 하는 일이 그 방향과 맞는지 점검해 보세요.',
+      advice: GOD[gods.top].advice,
     };
   }
 
@@ -592,14 +593,14 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
     boost.push(`${L.food} 같은 음식과 ${L.act} 같은 활동이 몸과 마음의 균형을 잡아줍니다.`);
     D.health = {
       keywords: [`${ELEMENT_KEYWORD[weakE]}의 기운 보충`, an.strength === '신강' ? '체력 좋음' : an.strength === '신약' ? '규칙적인 생활이 중요' : '무난한 체질', hasSin('양인') || hasSin('백호') ? '안전 주의' : null].filter(Boolean),
-      summary: `당신의 타고난 기운 중 ${josa(ELEMENT_PLAIN[weakE], '이/가')} ${an.elemCount[weakE]}개로 가장 적고 ${josa(ELEMENT_PLAIN[maxE], '이/가')} ${an.elemCount[maxE]}개로 가장 많습니다. 적은 쪽은 채우고 많은 쪽은 무리하지 않는 것이 건강 관리의 핵심입니다.`,
+      summary: `당신의 타고난 기운 중 ${josa(ELEMENT_PLAIN[weakE], '이/가')} ${an.elemCount[weakE]}개로 가장 적고 ${josa(ELEMENT_PLAIN[maxE], '이/가')} ${an.elemCount[maxE]}개로 가장 많습니다. ${an.strength === '신강' ? '힘이 넘치는 체질이라 쌓인 열과 긴장을 풀어주는 것이 관리의 핵심입니다.' : an.strength === '신약' ? '에너지가 쉽게 바닥나는 체질이라 채우고 쉬는 리듬이 관리의 핵심입니다.' : '균형 잡힌 체질이라 지금의 생활 리듬을 지키는 것이 관리의 핵심입니다.'}`,
       pair: { strengths, weak },
       boost,
       sections: [],
       flow: domainFlow(ctx, 'health'),
       timing: { title: '앞으로 10년 건강 흐름', ...timing(ctx, 'health') },
       note: '명리학의 전통 해석이며 의학적 진단을 대신하지 않습니다. 증상이 있으면 병원을 찾으세요.',
-      advice: '아픈 곳이 생기기 전에 약한 곳을 미리 챙기는 것이 이 사주의 건강 비결입니다.',
+      advice: `아프기 전에 ${josa(HEALTH[weakE], '을/를')} 먼저 챙기는 것이 이 사주의 건강 비결입니다.`,
     };
   }
 
@@ -608,7 +609,7 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
     const yi = yearInfo(ctx, nowYear);
     const areaDefs = [['wealth', '재물'], ['love', '연애'], ...(age >= 24 ? [['marriage', '결혼']] : []), ['career', '일과 진로'], ['health', '건강']];
     // 분야끼리 같은 문장(오행 영향, 변화의 방식)을 반복하지 않게 첫 분야에서만 말한다
-    const seenArea = new Set();
+    const seenArea = ctx.used;
     const areas = areaDefs.map(([dm, label]) => {
       const s = scoreFor(ctx, yi, dm);
       // 연도 공통 문장(에너지, 삼재)은 '올해의 흐름'에서 한 번만 말한다
@@ -624,27 +625,57 @@ export function buildDomains(saju, an, R, nowYear, nowMs = Date.now()) {
     if (yi.peach) flow.push('사람의 시선이 모이고 인기가 오르는 해입니다.');
     if (yi.horse) flow.push('이동, 출장, 이사, 해외와 관련된 일이 생기기 쉬운 해입니다.');
     if (yi.samjae) flow.push(`${ZODIAC[P.year.branch]}띠의 ${yi.samjae} 해입니다. 삼재는 큰 변화를 서두르지 말라는 신호일 뿐, 실제 좋고 나쁨은 위 흐름과 함께 보세요.`);
+    for (let i = flow.length - 1; i >= 0; i--) if (ctx.used.has(flow[i])) flow.splice(i, 1);
     const ys = luckScore(an, yi.stem, yi.branch);
+    const mdy = (ms) => { const d = new Date(ms + 9 * 3600e3); return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`; };
+    const bestM = [...R.months].sort((a, b) => b.score - a.score)[0];
+    const worstM = [...R.months].sort((a, b) => a.score - b.score)[0];
+    const bestWorst = bestM.score === worstM.score ? '달마다 큰 굴곡 없이 고르게 흘러갑니다.'
+      : `힘이 가장 실리는 때는 ${mdy(bestM.start)}부터 한 달, 숨을 고를 때는 ${mdy(worstM.start)}부터 한 달입니다.`;
+    // 앞으로 5년: 10년 카드와 다른 각도(그해의 성격 + 분야별 명암)로 쓴다
+    const LABEL = { wealth: '재물운', love: '연애운', career: '일과 진로', health: '건강운' };
+    const domAvg = {};
+    for (const dm of Object.keys(LABEL)) { let t = 0; for (let y = nowYear; y < nowYear + 12; y++) t += scoreFor(ctx, yearInfo(ctx, y), dm); domAvg[dm] = t / 12; }
     const five = [];
-    for (let y = nowYear; y < nowYear + 5; y++) five.push(yearCard(ctx, y, 'overall'));
-    dedupeCards(five);
+    for (let y = nowYear; y < nowYear + 5; y++) {
+      const info = yearInfo(ctx, y);
+      // 분야마다 기본 점수 수준이 달라 평균 대비 상대값으로 비교한다 (건강이 늘 꼴찌로 나오는 문제 방지)
+      const sc = Object.fromEntries(Object.keys(LABEL).map((dm) => [dm, scoreFor(ctx, info, dm) - domAvg[dm]]));
+      const order = Object.entries(sc).sort((a, b) => b[1] - a[1]);
+      const lines = [y === nowYear ? `올해는 ${GROUP[info.g2].theme}의 기운 아래 ${scoreAdj(luckScore(an, info.stem, info.branch))} 해입니다.` : YEAR_GOD[info.god].replace(/^올해는/, '이 해는')];
+      if (order[0][1] - order[3][1] >= 0.5) lines.push(`분야별로는 ${josa(LABEL[order[0][0]], '이/가')} 가장 밝고, ${josa(LABEL[order[3][0]], '은/는')} 한 번 더 살필 쪽입니다.`);
+      else lines.push('분야별 명암이 크지 않아 고르게 흘러가는 해입니다.');
+      const score = scoreFor(ctx, info, 'overall');
+      const tipsArr = TIPS.overall[score >= 0 ? 'good' : 'bad'];
+      five.push({ y, name: info.name, age: koreanAge(saju, y), score, theme: GROUP[info.g2].theme, samjae: info.samjae, why: lines.join(' '),
+        tip: [...tipsArr, ...TIPS[order[0][0]].good].find((t) => !ctx.used.has(t)) || '' });
+      if (five.at(-1).tip) ctx.used.add(five.at(-1).tip);
+    }
     D.year = {
       title: `${nowYear}년, ${yi.name}`,
       keywords: [yi.name, `${scoreAdj(ys)} 해`, GROUP[yi.g1].theme, yi.g2 !== yi.g1 ? GROUP[yi.g2].theme : null, yi.samjae].filter(Boolean),
-      summary: R.now.slice(1).join(' '),
+      summary: `${YEAR_GOD[yi.god]} ${bestWorst}`,
       sections: [
         { title: '올해의 흐름', kind: 'list', items: flow },
         { title: '분야별로 보면', kind: 'areas', items: areas },
         { title: '월별 흐름', kind: 'months', items: R.months },
         { title: '앞으로 5년, 한 해씩', kind: 'years', items: five },
       ],
-      advice: pick(TIPS.overall[ys >= 1 ? 'good' : 'bad'], R.seed),
+      advice: TIPS.overall[ys >= 1 ? 'good' : 'bad'].find((t) => !ctx.used.has(t)) || pick(TIPS.overall[ys >= 1 ? 'good' : 'bad'], R.seed),
     };
   }
 
-  /* 종합 (앞으로 10년) */
-  D.overallTiming = { title: '앞으로 10년, 좋은 해와 조심할 해', ...timing(ctx, 'overall') };
   D.ilju = iljuReading(P);
+
+  /* 올해 점수 (100점 환산): 등급(-2~2)에 12운성 세기와 분야별 보정을 더해 같은 등급이라도 사람마다 다르게 */
+  {
+    const yi = yearInfo(ctx, nowYear);
+    const to100 = (sc, extra = 0) => Math.max(28, Math.min(97, Math.round(64 + sc * 10 + STAGE_POWER[yi.stage] + extra)));
+    const mk = ([dm, label], i) => ({ key: dm, label, score: to100(scoreFor(ctx, yi, dm), ((R.seed * (i + 3) + i * 5) % 7) - 3) });
+    const items = [['wealth', '재물'], ['love', '연애'], ['career', '일'], ['health', '건강']].map(mk);
+    const total = Math.round((to100(scoreFor(ctx, yi, 'overall')) * 2 + items.reduce((a, b) => a + b.score, 0)) / 6);
+    D.scores = { year: nowYear, total, items };
+  }
   return D;
 }
 
