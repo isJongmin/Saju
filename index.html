@@ -37,12 +37,12 @@
 
       <div class="row">
         <div class="field">
-          <label for="birth">생년월일 <span class="opt">양력</span></label>
-          <input id="birth" name="birth" type="date" min="1912-01-01" max="2049-12-31" required>
+          <label for="birth">생년월일 <span class="opt">양력, 숫자 8자리</span></label>
+          <input id="birth" name="birth" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="예: 19900515" required>
         </div>
         <div class="field">
-          <label for="time">태어난 시각</label>
-          <input id="time" name="time" type="time" value="12:00">
+          <label for="time">태어난 시각 <span class="opt">24시간, 숫자 4자리</span></label>
+          <input id="time" name="time" type="text" inputmode="numeric" maxlength="5" placeholder="예: 0930">
           <label class="check"><input type="checkbox" id="time-unknown"> 시각을 몰라요</label>
         </div>
       </div>
@@ -83,34 +83,73 @@
       <div id="chart" class="chart" role="table" aria-label="사주 원국"></div>
       <p id="boundary" class="warn" hidden></p>
 
-      <div class="elements">
-        <h3>오행 분포</h3>
-        <div id="elements" class="el-bars"></div>
-        <p id="strength" class="sub"></p>
-      </div>
+      <section class="block" aria-labelledby="h-summary">
+        <h3 id="h-summary">한눈에 보기</h3>
+        <ul id="keywords" class="keywords"></ul>
+        <p id="summary" class="summary"></p>
+      </section>
 
-      <div class="reading">
+      <section class="block two" aria-label="강점과 보완할 점">
+        <div>
+          <h3>타고난 강점</h3>
+          <ul id="strengths" class="points good"></ul>
+        </div>
+        <div>
+          <h3>보완하면 좋은 점</h3>
+          <ul id="weaknesses" class="points weak"></ul>
+        </div>
+        <p id="yongsin" class="tip"></p>
+      </section>
+
+      <section class="block" aria-labelledby="h-now">
+        <h3 id="h-now">지금 나의 상황</h3>
+        <div id="now" class="prose"></div>
+      </section>
+
+      <section class="block" aria-labelledby="h-life">
+        <h3 id="h-life">인생의 흐름</h3>
+        <p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>
+        <ol id="timeline" class="timeline"></ol>
+        <button type="button" id="more-life" class="ghost">이후 흐름 더 보기</button>
+      </section>
+
+      <section class="block two" aria-label="앞으로 10년">
+        <div>
+          <h3>앞으로 10년, 기회의 해</h3>
+          <ul id="good-years" class="years"></ul>
+        </div>
+        <div>
+          <h3>조심할 해</h3>
+          <ul id="caution-years" class="years"></ul>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="h-sinsal">
+        <h3 id="h-sinsal">타고난 특별한 기운</h3>
+        <ul id="sinsal" class="sinsal"></ul>
+      </section>
+
+      <section class="block" aria-labelledby="h-elements">
+        <h3 id="h-elements">기운의 비율</h3>
+        <div id="elements" class="el-bars"></div>
+      </section>
+
+      <section class="reading block" aria-label="분야별 운세">
         <div class="tabs" role="tablist" id="tabs"></div>
         <div id="panel" class="panel" role="tabpanel"></div>
-      </div>
+      </section>
 
-      <div class="daewoon">
-        <h3>대운 흐름</h3>
-        <p class="sub" id="dw-sub"></p>
-        <ol id="dw-list" class="dw-list"></ol>
-      </div>
-
-      <div class="months">
+      <section class="block" aria-labelledby="months-title">
         <h3 id="months-title"></h3>
-        <ol id="months" class="month-grid"></ol>
-      </div>
+        <ol id="months" class="month-list"></ol>
+      </section>
 
-      <div class="ask">
-        <h3>더 궁금한 점</h3>
+      <section class="ask block" aria-labelledby="h-ask">
+        <h3 id="h-ask">더 궁금한 점</h3>
         <div id="chips" class="chips"></div>
         <div id="answers" class="answers"></div>
         <p class="sub">직접 질문을 입력해 답을 받는 AI 상담은 준비 중입니다.</p>
-      </div>
+      </section>
 
       <p class="disclaimer">사주 해석은 명리학의 전통 규칙을 단순화한 것으로 재미와 참고용입니다. 중요한 결정은 스스로의 판단과 전문가 조언을 기준으로 하세요.</p>
     </section>

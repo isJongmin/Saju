@@ -151,6 +151,56 @@ export function sinsal(baseBranch, target) {
   return out;
 }
 
+// 원진
+const WONJIN = { 0: 7, 7: 0, 1: 6, 6: 1, 2: 9, 9: 2, 3: 8, 8: 3, 4: 11, 11: 4, 5: 10, 10: 5 };
+export const isWonjin = (a, b) => WONJIN[a] === b;
+
+// 일간 기준 신살 대상 지지
+const NOBLE = [[1, 7], [0, 8], [11, 9], [11, 9], [1, 7], [0, 8], [1, 7], [2, 6], [5, 3], [5, 3]]; // 천을귀인
+const LITERARY = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3]; // 문창귀인
+const BLADE = { 0: 3, 2: 6, 4: 6, 6: 9, 8: 0 };    // 양인 (양간만)
+const RED = [6, 6, 2, 7, 4, 4, 10, 9, 0, 8];      // 홍염
+const KUIGANG = new Set(['6-4', '6-10', '8-4', '8-10', '4-10']); // 庚辰 庚戌 壬辰 壬戌 戊戌
+const BAEKHO = new Set(['0-4', '1-7', '2-10', '3-1', '4-4', '8-10', '9-1']); // 백호
+
+// 공망: 일주가 속한 순(旬)에서 빠진 두 지지
+export function emptyBranches(dayCycle) {
+  const b0 = mod(dayCycle - (dayCycle % 10), 12);
+  return [mod(b0 + 10, 12), mod(b0 + 11, 12)];
+}
+
+/**
+ * 원국 전체 신살 목록
+ * @returns [{ key, pos }] pos: 'year'|'month'|'day'|'hour'
+ */
+export function collectSinsal(pillars) {
+  const { year, day } = pillars;
+  const ds = day.stem;
+  const positions = ['year', 'month', 'day', 'hour'].filter((k) => pillars[k]);
+  const out = [];
+  const add = (key, pos) => { if (!out.some((o) => o.key === key && o.pos === pos)) out.push({ key, pos }); };
+  const empties = emptyBranches(day.cycle);
+  for (const pos of positions) {
+    const p = pillars[pos];
+    const b = p.branch;
+    if (NOBLE[ds].includes(b)) add('천을귀인', pos);
+    if (LITERARY[ds] === b) add('문창귀인', pos);
+    if (BLADE[ds] === b) add('양인', pos);
+    if (RED[ds] === b) add('홍염', pos);
+    if (BAEKHO.has(`${p.stem}-${b}`)) add('백호', pos);
+    for (const base of [year.branch, day.branch]) {
+      if (pos === 'year' && base === year.branch) continue;
+      if (pos === 'day' && base === day.branch) continue;
+      for (const s of sinsal(base, b)) add(s, pos);
+    }
+    if (pos !== 'day' && empties.includes(b)) add('공망', pos);
+    if (pos !== 'day' && isWonjin(b, day.branch)) add('원진', pos);
+    if (pos !== 'day' && isClash(b, day.branch)) add('충', pos);
+  }
+  if (KUIGANG.has(`${day.stem}-${day.branch}`)) add('괴강', 'day');
+  return out;
+}
+
 const pillar = (stem, branch) => ({ stem, branch, cycle: toCycle(stem, branch) });
 
 export function yearPillarOf(sajuYear) {
