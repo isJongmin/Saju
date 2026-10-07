@@ -79,7 +79,7 @@ form.addEventListener('submit', (e) => {
   const err = $('form-error');
   if (inp.error) { err.textContent = inp.error; err.hidden = false; return; }
   err.hidden = true;
-  history.replaceState(null, '', `#${toHash(inp)}`);
+  try { history.replaceState(null, '', `#${toHash(inp)}`); } catch { /* 샌드박스 환경 */ }
   run(inp, true);
 });
 
