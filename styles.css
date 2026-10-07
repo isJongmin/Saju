@@ -67,7 +67,10 @@ p { margin: 0; }
   display: grid;
   gap: 22px;
 }
-.field { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.field { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; align-content: start; }
+.sub-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 34px; }
+.seg.seg-sm label { padding: 5px 12px; font-size: 0.85rem; }
+.check:has(input:disabled) { opacity: .5; }
 .field > label, legend { font-weight: 600; font-size: 0.95rem; padding: 0; }
 .opt { font-weight: 400; color: var(--muted); font-size: 0.85rem; margin-left: 4px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -157,7 +160,7 @@ button { font: inherit; cursor: pointer; }
 .el-row .n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* 해석 탭 */
-.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
   flex: none; background: transparent; border: 1px solid var(--line); color: var(--ink);
@@ -264,13 +267,46 @@ h4 { font-size: 1rem; font-weight: 600; margin: 0 0 10px; }
 
 /* 월별 흐름 */
 .month-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
-.month-list li { padding: 12px 4px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
-.month-list li.current { background: var(--surface); }
+.month-list > li { padding: 12px 4px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.month-list > li.current { background: var(--surface); }
 .m-row { display: grid; grid-template-columns: 9.5em 1fr auto; gap: 10px; align-items: center; }
 .m-why { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
 .m-span { font-variant-numeric: tabular-nums; font-size: 0.92rem; }
 .m-note { color: var(--muted); font-size: 0.92rem; }
 .m-tag { font-size: 0.75rem; color: var(--accent); margin-left: 6px; }
+
+/* 월별 보조 */
+.m-hints { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; }
+.m-hints span { color: var(--muted); margin-right: 6px; }
+.m-action { font-size: 0.88rem; color: var(--accent); }
+
+/* 보강 */
+.boost { margin-top: 18px; display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.boost h3 { margin: 0; }
+.points.fix li::before { background: var(--water); }
+
+/* 분야별 과거, 현재, 미래 */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.flow li { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.flow li.past { color: var(--muted); }
+.flow li.present { border-color: var(--accent); background: var(--surface); }
+.f-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.f-label { font-weight: 600; color: var(--ink); }
+
+/* 정의 목록 (판단 근거, 개운법, 용어) */
+.defs { margin: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.defs > div { display: grid; grid-template-columns: 9em 1fr; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.defs dt { color: var(--muted); font-size: 0.9rem; }
+.defs dd { margin: 0; }
+.defs.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.defs.grid > div { grid-template-columns: 4.5em 1fr; }
+.el-bars + .defs { margin-top: 16px; }
+.glossary summary { cursor: pointer; font-family: var(--serif); font-weight: 700; font-size: 1.1rem; }
+.glossary[open] summary { margin-bottom: 12px; }
+.glossary .defs > div { grid-template-columns: 7em 1fr; }
+
+.badge { font-size: 0.75rem; border-radius: 4px; padding: 1px 6px; background: var(--warn-bg); color: var(--warn-ink); }
+.yc-theme { font-family: var(--serif); font-size: 1rem !important; }
 
 /* 질문 */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -295,6 +331,10 @@ h4 { font-size: 1rem; font-weight: 600; margin: 0 0 10px; }
   .m-row { grid-template-columns: 1fr auto; }
   .m-note { grid-column: 1 / -1; grid-row: 2; }
   .chart { gap: 4px; }
+  .defs > div { grid-template-columns: 1fr; gap: 2px; }
+  .defs.grid { grid-template-columns: 1fr; }
+  .defs.grid > div, .glossary .defs > div { grid-template-columns: 4.5em 1fr; gap: 10px; }
+  .glossary .defs > div { grid-template-columns: 1fr; gap: 2px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -1,7 +1,7 @@
 // 실행: node --test tests/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcSaju, yearFortune, dayPillarOfDate, STEMS, BRANCHES } from '../js/core.js';
+import { calcSaju, analyze, yearFortune, dayPillarOfDate, STEMS, BRANCHES } from '../js/core.js';
 
 const name = (p) => (p ? STEMS[p.stem] + BRANCHES[p.branch] : null);
 const kst = (ms) => new Date(ms + 9 * 3600e3);
@@ -74,4 +74,49 @@ test('대운 방향과 시작 나이', () => {
 test('시각 모름이면 시주 없음', () => {
   const s = calcSaju({ year: 1995, month: 11, day: 2, timeUnknown: true, gender: 'F' });
   assert.equal(s.pillars.hour, null);
+});
+
+import { lunarToSolar, solarToLunar, samjae } from '../js/core.js';
+import { buildReading, ELEMENT_PLAIN } from '../js/interpret.js';
+import { buildDomains } from '../js/domains.js';
+
+test('음력 -> 양력 (윤달 포함, 한국천문연구원 발표값)', () => {
+  const cases = [
+    [[2024, 1, 1, false], [2024, 2, 10]], [[2023, 2, 1, true], [2023, 3, 22]], [[2020, 4, 1, true], [2020, 5, 23]],
+    [[1990, 5, 1, true], [1990, 6, 23]], [[2025, 8, 15, false], [2025, 10, 6]], [[1985, 1, 1, false], [1985, 2, 20]],
+    [[2025, 6, 1, true], [2025, 7, 25]], [[1960, 1, 1, false], [1960, 1, 28]],
+  ];
+  for (const [[y, m, d, l], [ey, em, ed]] of cases) assert.deepEqual(lunarToSolar(y, m, d, l), { year: ey, month: em, day: ed });
+  assert.ok(lunarToSolar(2024, 4, 1, true).error, '없는 윤달은 오류');
+});
+
+test('양력 <-> 음력 왕복 변환 (1913~2048)', () => {
+  for (let t = Date.UTC(1913, 0, 1); t < Date.UTC(2049, 0, 1); t += 86400000 * 7) {
+    const d = new Date(t);
+    const L = solarToLunar(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+    const S = lunarToSolar(L.year, L.month, L.day, L.leap);
+    assert.deepEqual(S, { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() });
+  }
+});
+
+test('삼재: 말띠는 신유술년', () => {
+  assert.equal(samjae(6, 8), '들삼재'); assert.equal(samjae(6, 9), '눌삼재'); assert.equal(samjae(6, 10), '날삼재'); assert.equal(samjae(6, 11), null);
+});
+
+test('해석 일관성: 오행 과다/부족 표현과 개수가 어긋나지 않음', () => {
+  let seed = 7; const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const strings = (o, out = []) => { if (typeof o === 'string') out.push(o); else if (o && typeof o === 'object') for (const v of Object.values(o)) if (typeof v !== 'function') strings(v, out); return out; };
+  for (let i = 0; i < 300; i++) {
+    const s = calcSaju({ year: 1930 + rnd(90), month: 1 + rnd(12), day: 1 + rnd(28), hour: rnd(24), minute: rnd(60), gender: rnd(2) ? 'M' : 'F', timeUnknown: rnd(6) === 0 });
+    const an = analyze(s);
+    const R = buildReading(s, an, 2026, Date.UTC(2026, 9, 7));
+    const D = buildDomains(s, an, R, 2026, Date.UTC(2026, 9, 7));
+    for (const t of strings({ R, D })) {
+      assert.ok(!/undefined|NaN|\[object/.test(t), t);
+      ELEMENT_PLAIN.forEach((e, k) => {
+        assert.ok(!(t.includes(`부족한 ${e}`) && an.elemCount[k] >= 2), t);
+        assert.ok(!(t.includes(`넘치는 ${e}`) && an.elemCount[k] < 3), t);
+      });
+    }
+  }
 });

@@ -1,8 +1,8 @@
 import {
-  calcSaju, analyze, yearFortune, STEMS, BRANCHES, STEMS_KO, BRANCHES_KO, ELEMENTS, ELEMENTS_KO,
+  calcSaju, analyze, yearFortune, lunarToSolar, solarToLunar, STEMS, BRANCHES, STEMS_KO, BRANCHES_KO, ELEMENTS, ELEMENTS_KO,
   BRANCH_ELEMENT, ZODIAC, TEN_GODS, stemElement, tenGod, branchTenGod, twelveStage,
 } from './core.js';
-import { buildReading, QUESTIONS, answer, scoreWord, SINSAL, POS_AREA, ELEMENT_PLAIN } from './interpret.js';
+import { buildReading, QUESTIONS, answer, scoreWord, SINSAL, POS_AREA, ELEMENT_PLAIN, GLOSSARY } from './interpret.js';
 import { buildDomains } from './domains.js';
 
 const CITIES = [
@@ -42,6 +42,8 @@ $('birth').addEventListener('input', (e) => {
 });
 $('time').addEventListener('input', (e) => formatDigits(e.target, [2, 2], ':'));
 $('time-unknown').addEventListener('change', (e) => { $('time').disabled = e.target.checked; });
+const syncCal = () => { const lunar = form.cal.value === 'lunar'; $('leap').disabled = !lunar; if (!lunar) $('leap').checked = false; };
+for (const r of form.cal) r.addEventListener('change', syncCal);
 
 let state = null;
 
@@ -49,10 +51,21 @@ let state = null;
 function readForm() {
   const bd = $('birth').value.replace(/\D/g, '');
   if (bd.length !== 8) return { error: '생년월일을 숫자 8자리로 입력해 주세요. 예: 19900515' };
-  const year = +bd.slice(0, 4), month = +bd.slice(4, 6), day = +bd.slice(6, 8);
-  const d = new Date(Date.UTC(year, month - 1, day));
-  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) {
-    return { error: `${year}년 ${month}월 ${day}일은 없는 날짜입니다. 다시 확인해 주세요.` };
+  const lunar = form.cal.value === 'lunar';
+  const leap = lunar && $('leap').checked;
+  const iy = +bd.slice(0, 4), im = +bd.slice(4, 6), id = +bd.slice(6, 8);
+  if (iy < 1912 || iy > 2049) return { error: '1912년부터 2049년 사이의 날짜만 계산할 수 있습니다.' };
+  let year = iy, month = im, day = id;
+  if (lunar) {
+    if (im < 1 || im > 12 || id < 1 || id > 30) return { error: '음력 날짜를 다시 확인해 주세요. 월은 1~12, 일은 1~30입니다.' };
+    const s = lunarToSolar(iy, im, id, leap);
+    if (s.error) return { error: s.error };
+    ({ year, month, day } = s);
+  } else {
+    const d = new Date(Date.UTC(year, month - 1, day));
+    if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) {
+      return { error: `${year}년 ${month}월 ${day}일은 없는 날짜입니다. 다시 확인해 주세요.` };
+    }
   }
   if (year < 1912 || year > 2049) return { error: '1912년부터 2049년 사이의 날짜만 계산할 수 있습니다.' };
   const timeUnknown = $('time-unknown').checked;
@@ -67,6 +80,7 @@ function readForm() {
   return {
     name: $('name').value.trim().slice(0, 20),
     year, month, day, hour, minute, timeUnknown,
+    lunar, leap, raw: { y: iy, m: im, d: id },
     gender: form.gender.value,
     ziMode: form.zi.value,
     city: city[0], cityLabel: city[1], longitude: city[2],
@@ -75,11 +89,12 @@ function readForm() {
 
 function toHash(inp) {
   const p = new URLSearchParams({
-    d: `${inp.year}${pad(inp.month)}${pad(inp.day)}`,
+    d: `${inp.raw.y}${pad(inp.raw.m)}${pad(inp.raw.d)}`,
     t: inp.timeUnknown ? 'x' : `${pad(inp.hour)}${pad(inp.minute)}`,
     g: inp.gender, c: inp.city, z: inp.ziMode,
   });
   if (inp.name) p.set('n', inp.name);
+  if (inp.lunar) p.set('l', inp.leap ? '2' : '1');
   return p.toString();
 }
 
@@ -96,6 +111,9 @@ function fromHash() {
   form.zi.value = p.get('z') === 'same' ? 'same' : 'next';
   if (CITIES.some((c) => c[0] === p.get('c'))) $('city').value = p.get('c');
   $('name').value = p.get('n') || '';
+  form.cal.value = p.get('l') ? 'lunar' : 'solar';
+  syncCal();
+  $('leap').checked = p.get('l') === '2';
   return true;
 }
 
@@ -163,7 +181,9 @@ function renderHead() {
   $('r-title').textContent = inp.name ? `${inp.name}님의 사주` : '나의 사주';
   const st = saju.solarTime;
   const timeTxt = inp.timeUnknown ? '시각 모름' : `${pad(inp.hour)}:${pad(inp.minute)}`;
-  let meta = [`양력 ${inp.year}년 ${inp.month}월 ${inp.day}일 ${timeTxt}`, inp.gender === 'M' ? '남성' : '여성', `${ZODIAC[saju.pillars.year.branch]}띠`].join(', ');
+  const lu = solarToLunar(inp.year, inp.month, inp.day);
+  const luTxt = lu ? `음력 ${lu.year}년 ${lu.leap ? '윤' : ''}${lu.month}월 ${lu.day}일` : '';
+  let meta = [`양력 ${inp.year}년 ${inp.month}월 ${inp.day}일 ${timeTxt} (${luTxt})`, inp.gender === 'M' ? '남성' : '여성', `${ZODIAC[saju.pillars.year.branch]}띠`].join(', ');
   if (!inp.timeUnknown) {
     const corr = inp.longitude == null ? '표준시 기준' : `${inp.cityLabel} 경도 보정`;
     meta += `. 계산 기준 시각 ${pad(st.h)}:${pad(st.min)} (${corr}${saju.dst ? ', 서머타임 1시간 제외' : ''})`;
@@ -216,7 +236,8 @@ function yearCards(arr, empty) {
   if (!arr.length) return `<p class="sub">${empty}</p>`;
   return `<ul class="ycards">${arr.map((a) => `
     <li class="ycard ${pillCls(a.score)}">
-      <div class="yc-head"><span class="y">${a.y}</span><span class="yc-name">${esc(a.name)}${a.age ? `, ${a.age}세` : ''}</span>${pill(a.score)}</div>
+      <div class="yc-head"><span class="y">${a.y}</span><span class="yc-name">${esc(a.name)}${a.age ? `, ${a.age}세` : ''}</span>${pill(a.score)}${a.samjae ? `<span class="badge">${a.samjae}</span>` : ''}</div>
+      ${a.showTheme ? `<p class="yc-theme">${esc(a.theme)}</p>` : ''}
       <p>${esc(a.why)}</p>
       <p class="yc-tip">${esc(a.tip)}</p>
     </li>`).join('')}</ul>`;
@@ -278,6 +299,25 @@ function elementsHtml() {
     </div>`).join('')}</div>`;
 }
 
+const defs = (rows, cls = '') => `<dl class="defs ${cls}">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
+
+function pairHtml(strengths, weak, boost) {
+  return block(null, `<div class="two-col">
+      <div><h3>강점</h3>${ul(strengths, 'good')}</div>
+      <div><h3>약점</h3>${ul(weak, 'weak')}</div>
+    </div>
+    <div class="boost"><h3>보강하면 좋은 것</h3>${ul(boost, 'fix')}</div>`);
+}
+
+function flowHtml(items, title = '과거, 현재, 미래') {
+  if (!items || !items.length) return '';
+  return block(title, `<ol class="flow">${items.map((f) => `
+    <li class="${f.tense}">
+      <div class="f-head"><span class="f-label">${esc(f.label)}</span><span class="t-years">${esc(f.range)}, ${esc(f.years)}</span>${pill(f.score)}</div>
+      <p>${esc(f.text)}</p>
+    </li>`).join('')}</ol>`);
+}
+
 function overallHtml() {
   const { R, D } = state;
   return [
@@ -287,15 +327,16 @@ function overallHtml() {
       ${D.ilju.paras.map((t) => `<p>${esc(t)}</p>`).join('')}
     </div>`),
     block('한눈에 보기', `${chips(R.keywords)}<p class="summary">${esc(R.summary)}</p>`),
-    block(null, `<div class="two-col">
-      <div><h3>타고난 강점</h3>${ul(R.strengths, 'good')}</div>
-      <div><h3>보완하면 좋은 점</h3>${ul(R.weaknesses, 'weak')}</div>
-    </div><p class="tip">${esc(R.yongsinTip)}</p>`),
-    block('지금 나의 상황', `<div class="prose">${R.now.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`),
+    block('당신은 이런 사람입니다', ul(R.persona)),
+    pairHtml(R.strengths, R.weaknesses, R.boosts),
     block('인생의 흐름', `<p class="sub">10년 단위로 바뀌는 큰 흐름입니다. 지나온 시기는 돌아보고, 다가올 시기는 미리 준비해 보세요.</p>${timelineHtml()}`),
+    block('지금 나의 상황', `<div class="prose">${R.now.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`),
     timingBlock(D.overallTiming),
     block('타고난 특별한 기운', sinsalHtml()),
-    block('기운의 비율', elementsHtml()),
+    block('나를 돕는 귀인', ul(R.noble)),
+    block('운을 여는 생활 습관', `<p class="sub">가장 필요한 기운을 생활 속에서 채우는 방법입니다.</p>${defs(R.remedy, 'grid')}`),
+    block('기운의 비율과 판단 근거', `${elementsHtml()}${defs(R.basis)}<p class="sub">모든 탭의 풀이는 위 판단을 같은 기준으로 사용합니다.</p>`),
+    block(null, `<details class="glossary"><summary>사주 용어 풀이</summary>${defs(GLOSSARY)}</details>`),
   ].join('');
 }
 
@@ -309,12 +350,15 @@ function monthsHtml(months) {
         ${pill(m.score)}
       </div>
       <p class="m-why">${esc(m.why)}</p>
+      <ul class="m-hints">${m.hints.map(([k, v]) => `<li><span>${k}</span>${esc(v)}</li>`).join('')}</ul>
+      <p class="m-action">${esc(m.action)}</p>
     </li>`).join('')}</ol>`;
 }
 
 function domainHtml(d) {
   const secs = d.sections.map((sec) => {
-    if (sec.kind === 'months') return block(sec.title, monthsHtml(sec.items));
+    if (sec.kind === 'months') return block(sec.title, `<p class="sub">한 달의 시작은 절기(24절기 중 12절) 기준입니다.</p>${monthsHtml(sec.items)}`);
+    if (sec.kind === 'years') return block(sec.title, yearCards(sec.items.map((a) => ({ ...a, showTheme: true })), ''));
     if (sec.kind === 'areas') {
       return block(sec.title, `<ul class="areas">${sec.items.map((a) => `
         <li><div class="area-head"><span class="area-label">${a.label}</span>${pill(a.score)}</div><p>${esc(a.text)}</p></li>`).join('')}</ul>`);
@@ -323,7 +367,9 @@ function domainHtml(d) {
   });
   return [
     block(d.title || null, `${chips(d.keywords)}<p class="summary">${esc(d.summary)}</p>`, 'lead'),
+    d.pair ? pairHtml(d.pair.strengths, d.pair.weak, d.boost) : '',
     ...secs,
+    flowHtml(d.flow),
     timingBlock(d.timing),
     d.advice ? block(null, `<p class="tip"><strong>조언</strong> ${esc(d.advice)}</p>`) : '',
     d.note ? `<p class="sub">${esc(d.note)}</p>` : '',
@@ -341,7 +387,9 @@ function selectTab(id, focus) {
   state.tab = id;
   renderTabs();
   if (focus) $(`tab-${id}`).focus({ preventScroll: true });
-  // 탭을 바꾸면 결과 화면 맨 위(이름, 사주 8글자)부터 다시 보이게
+  // 가로로 넘치는 탭 바에서 선택한 탭이 보이게 (세로 스크롤은 건드리지 않음)
+  const bar0 = $('tabs'), t = $(`tab-${id}`);
+  bar0.scrollTo({ left: t.offsetLeft - (bar0.clientWidth - t.offsetWidth) / 2, behavior: 'smooth' });
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // 탭 바가 화면 맨 위에 딱 붙도록: .reading 상단(= 탭 바의 원래 위치)을 뷰포트 상단에 맞춘다
   const bar = $('tabs');

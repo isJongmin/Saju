@@ -37,13 +37,22 @@
 
       <div class="row">
         <div class="field">
-          <label for="birth">생년월일 <span class="opt">양력, 숫자 8자리</span></label>
+          <label for="birth">생년월일 <span class="opt">숫자 8자리</span></label>
           <input id="birth" name="birth" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="예: 19900515" required>
+          <div class="sub-row">
+            <div class="seg seg-sm" role="radiogroup" aria-label="달력">
+              <input type="radio" id="cal-s" name="cal" value="solar" checked><label for="cal-s">양력</label>
+              <input type="radio" id="cal-l" name="cal" value="lunar"><label for="cal-l">음력</label>
+            </div>
+            <label class="check"><input type="checkbox" id="leap" disabled> 윤달</label>
+          </div>
         </div>
         <div class="field">
           <label for="time">태어난 시각 <span class="opt">24시간, 숫자 4자리</span></label>
           <input id="time" name="time" type="text" inputmode="numeric" maxlength="5" placeholder="예: 0930">
-          <label class="check"><input type="checkbox" id="time-unknown"> 시각을 몰라요</label>
+          <div class="sub-row">
+            <label class="check"><input type="checkbox" id="time-unknown"> 시각을 몰라요</label>
+          </div>
         </div>
       </div>
 
@@ -65,7 +74,6 @@
         </fieldset>
       </details>
 
-      <p class="note">음력 생일은 아직 지원하지 않습니다. 양력 날짜로 바꿔서 입력해 주세요.</p>
       <p id="form-error" class="error" role="alert" hidden></p>
       <button type="submit" class="primary">사주 풀어보기</button>
     </form>

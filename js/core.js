@@ -156,7 +156,7 @@ const WONJIN = { 0: 7, 7: 0, 1: 6, 6: 1, 2: 9, 9: 2, 3: 8, 8: 3, 4: 11, 11: 4, 5
 export const isWonjin = (a, b) => WONJIN[a] === b;
 
 // 일간 기준 신살 대상 지지
-const NOBLE = [[1, 7], [0, 8], [11, 9], [11, 9], [1, 7], [0, 8], [1, 7], [2, 6], [5, 3], [5, 3]]; // 천을귀인
+export const NOBLE = [[1, 7], [0, 8], [11, 9], [11, 9], [1, 7], [0, 8], [1, 7], [2, 6], [5, 3], [5, 3]]; // 천을귀인
 const LITERARY = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3]; // 문창귀인
 const BLADE = { 0: 3, 2: 6, 4: 6, 6: 9, 8: 0 };    // 양인 (양간만)
 const RED = [6, 6, 2, 7, 4, 4, 10, 9, 0, 8];      // 홍염
@@ -303,6 +303,105 @@ export function yearFortune(y) {
     guess = start + 30.4;
   }
   return { ...yp, year: y, months };
+}
+
+/* ---------------- 음력 (한국 음력, 천문 계산) ---------------- */
+// 합삭 시각: Meeus 49장. 반환 JDE(TT)
+function newMoonJde(k) {
+  const T = k / 1236.85;
+  let jde = 2451550.09766 + 29.530588861 * k + 0.00015437 * T * T - 0.00000015 * T ** 3 + 0.00000000073 * T ** 4;
+  const E = 1 - 0.002516 * T - 0.0000074 * T * T;
+  const M = rad(2.5534 + 29.1053567 * k - 0.0000014 * T * T - 0.00000011 * T ** 3);
+  const Mp = rad(201.5643 + 385.81693528 * k + 0.0107582 * T * T + 0.00001238 * T ** 3 - 0.000000058 * T ** 4);
+  const F = rad(160.7108 + 390.67050284 * k - 0.0016118 * T * T - 0.00000227 * T ** 3 + 0.000000011 * T ** 4);
+  const Om = rad(124.7746 - 1.56375588 * k + 0.0020672 * T * T + 0.00000215 * T ** 3);
+  const s = Math.sin;
+  jde += -0.4072 * s(Mp) + 0.17241 * E * s(M) + 0.01608 * s(2 * Mp) + 0.01039 * s(2 * F)
+    + 0.00739 * E * s(Mp - M) - 0.00514 * E * s(Mp + M) + 0.00208 * E * E * s(2 * M)
+    - 0.00111 * s(Mp - 2 * F) - 0.00057 * s(Mp + 2 * F) + 0.00056 * E * s(2 * Mp + M)
+    - 0.00042 * s(3 * Mp) + 0.00042 * E * s(M + 2 * F) + 0.00038 * E * s(M - 2 * F)
+    - 0.00024 * E * s(2 * Mp - M) - 0.00017 * s(Om) - 0.00007 * s(Mp + 2 * M)
+    + 0.00004 * s(2 * Mp - 2 * F) + 0.00004 * s(3 * M) + 0.00003 * s(Mp + M - 2 * F)
+    + 0.00003 * s(2 * Mp + 2 * F) - 0.00003 * s(Mp + M + 2 * F) + 0.00003 * s(Mp - M + 2 * F)
+    - 0.00002 * s(Mp - M - 2 * F) - 0.00002 * s(3 * Mp + M) + 0.00002 * s(4 * Mp);
+  const A = [
+    [299.77, 0.107408, 0.000325], [251.88, 0.016321, 0.000165], [251.83, 26.651886, 0.000164],
+    [349.42, 36.412478, 0.000126], [84.66, 18.206239, 0.00011], [141.74, 53.303771, 0.000062],
+    [207.14, 2.453732, 0.00006], [154.84, 7.30686, 0.000056], [34.52, 27.261239, 0.000047],
+    [207.19, 0.121824, 0.000042], [291.34, 1.844379, 0.00004], [161.72, 24.198154, 0.000037],
+    [239.56, 25.513099, 0.000035], [331.55, 3.592518, 0.000023],
+  ];
+  A.forEach(([a, b, c], i) => { jde += c * s(rad(a + b * k - (i === 0 ? 0.009173 * T * T : 0))); });
+  return jde;
+}
+
+// UT JD -> 한국 표준시(서머타임 제외) 기준 날짜의 일련번호(1970-01-01 = 0)
+function koreaDayOf(jdUT) {
+  const ms = msFromJd(jdUT);
+  const o = seoulOffsetAt(ms);
+  return Math.floor((ms + (o.dst ? o.off - 60 : o.off) * 60000) / DAY_MS);
+}
+const newMoonDay = (k) => {
+  const jde = newMoonJde(k);
+  return koreaDayOf(jde - deltaT(2000 + (jde - 2451545) / 365.25) / 86400);
+};
+const solsticeDay = (y) => koreaDayOf(findSunLongitude(270, jdFromMs(Date.UTC(y, 11, 21))));
+
+// 동지(y-1)가 든 달부터 동지(y)가 든 달 직전까지의 달 목록 (11월 시작)
+const suiCache = new Map();
+function suiMonths(Y) {
+  if (suiCache.has(Y)) return suiCache.get(Y);
+  const ws0 = solsticeDay(Y - 1), ws1 = solsticeDay(Y);
+  let k = Math.floor((jdFromMs(Date.UTC(Y - 1, 11, 21)) - 2451550.1) / 29.530588861);
+  while (newMoonDay(k + 1) <= ws0) k++;
+  while (newMoonDay(k) > ws0) k--;
+  const starts = [];
+  for (let kk = k; ; kk++) { const d = newMoonDay(kk); if (d > ws1) break; starts.push(d); }
+  // 마지막 원소는 동지(Y)가 든 다음 해 11월의 시작 → 끝 경계로 사용
+  const n = starts.length - 1;
+  const zq = [];
+  const wsJd = findSunLongitude(270, jdFromMs(Date.UTC(Y - 1, 11, 21)));
+  for (let i = 0; i <= 13; i++) zq.push(koreaDayOf(findSunLongitude(mod(270 + 30 * i, 360), wsJd + 30.44 * i)));
+  const months = [];
+  let num = 11, leapUsed = false, seenFirst = false;
+  for (let i = 0; i < n; i++) {
+    const s = starts[i], e = starts[i + 1];
+    let leap = false;
+    if (i > 0) {
+      const hasZq = zq.some((d) => d >= s && d < e);
+      if (n === 13 && !leapUsed && !hasZq) { leap = true; leapUsed = true; }
+      else num = (num % 12) + 1;
+    }
+    if (num === 1 && !leap) seenFirst = true;
+    months.push({ year: seenFirst ? Y : Y - 1, month: num, leap, start: s, days: e - s });
+  }
+  suiCache.set(Y, months);
+  return months;
+}
+const lunarMonthsAround = (y) => [...suiMonths(y), ...suiMonths(y + 1)];
+const dayToYmd = (dn) => { const d = new Date(dn * DAY_MS); return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }; };
+
+/** 음력 -> 양력. 없는 날짜면 { error } */
+export function lunarToSolar(y, m, d, leap = false) {
+  const mon = lunarMonthsAround(y).find((x) => x.year === y && x.month === m && x.leap === leap);
+  if (!mon) return { error: leap ? `음력 ${y}년에는 윤${m}월이 없습니다.` : `음력 ${y}년 ${m}월을 찾을 수 없습니다.` };
+  if (d < 1 || d > mon.days) return { error: `음력 ${y}년 ${leap ? '윤' : ''}${m}월은 ${mon.days}일까지 있습니다.` };
+  return dayToYmd(mon.start + d - 1);
+}
+
+/** 양력 -> 음력 */
+export function solarToLunar(y, m, d) {
+  const dn = Math.floor(Date.UTC(y, m - 1, d) / DAY_MS);
+  const mon = lunarMonthsAround(y).find((x) => dn >= x.start && dn < x.start + x.days);
+  return mon ? { year: mon.year, month: mon.month, day: dn - mon.start + 1, leap: mon.leap } : null;
+}
+
+/* ---------------- 삼재 ---------------- */
+// 띠(연지)의 삼합 그룹별 삼재 시작 지지: 申子辰→寅, 巳酉丑→亥, 寅午戌→申, 亥卯未→巳
+const SAMJAE_START = [2, 11, 8, 5];
+export function samjae(yearBranch, targetBranch) {
+  const k = mod(targetBranch - SAMJAE_START[TRINE_GROUP(yearBranch)], 12);
+  return k <= 2 ? ['들삼재', '눌삼재', '날삼재'][k] : null;
 }
 
 // 오행/십성 분포와 신강약
