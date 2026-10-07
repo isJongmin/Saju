@@ -343,7 +343,11 @@ function selectTab(id, focus) {
   if (focus) $(`tab-${id}`).focus({ preventScroll: true });
   // 탭을 바꾸면 결과 화면 맨 위(이름, 사주 8글자)부터 다시 보이게
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  $('result').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  // 탭 바가 화면 맨 위에 딱 붙도록: .reading 상단(= 탭 바의 원래 위치)을 뷰포트 상단에 맞춘다
+  const bar = $('tabs');
+  const mt = parseFloat(getComputedStyle(bar).marginTop) || 0;
+  const top = window.scrollY + $('panel').parentElement.getBoundingClientRect().top + mt;
+  window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
 }
 $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
