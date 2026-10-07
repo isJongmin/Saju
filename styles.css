@@ -111,7 +111,7 @@ button { font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- 결과 ---------- */
-.result { display: grid; gap: 40px; min-width: 0; }
+.result { display: grid; gap: 40px; min-width: 0; scroll-margin-top: 12px; }
 .result > * { min-width: 0; }
 .result-head { display: grid; gap: 6px; }
 .meta { color: var(--muted); font-size: 0.9rem; }
@@ -276,7 +276,7 @@ h4 { font-size: 1rem; font-weight: 600; margin: 0 0 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { background: var(--field); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 0.92rem; color: var(--ink); }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
-.chip[disabled] { opacity: .45; cursor: default; }
+.chip[aria-pressed=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .answers { display: grid; gap: 14px; margin: 18px 0 12px; }
 .qa { display: grid; gap: 8px; }
 .qa .q { justify-self: end; background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 14px 14px 4px 14px; font-size: 0.92rem; max-width: 85%; }

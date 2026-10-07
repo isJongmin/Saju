@@ -340,9 +340,10 @@ function renderTabs() {
 function selectTab(id, focus) {
   state.tab = id;
   renderTabs();
-  if (focus) $(`tab-${id}`).focus();
-  const top = $('tabs').getBoundingClientRect().top;
-  if (top < 0) $('tabs').scrollIntoView({ block: 'start' });
+  if (focus) $(`tab-${id}`).focus({ preventScroll: true });
+  // 탭을 바꾸면 결과 화면 맨 위(이름, 사주 8글자)부터 다시 보이게
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('result').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 }
 $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
@@ -360,18 +361,19 @@ $('panel').addEventListener('click', (e) => {
 
 function renderChips() {
   $('answers').innerHTML = '';
-  $('chips').innerHTML = QUESTIONS.map((q) => `<button type="button" class="chip" data-q="${q.id}">${q.q}</button>`).join('');
+  $('chips').innerHTML = QUESTIONS.map((q) => `<button type="button" class="chip" data-q="${q.id}" aria-pressed="false">${q.q}</button>`).join('');
 }
 $('chips').addEventListener('click', (e) => {
   const b = e.target.closest('[data-q]');
   if (!b || !state) return;
   const q = QUESTIONS.find((x) => x.id === b.dataset.q);
   const lines = answer(q.id, state.saju, state.an, state.R, state.year);
+  // 한 번에 하나의 질문만: 이전 선택과 답변을 지우고 새 답변으로 교체
+  for (const c of $('chips').querySelectorAll('[data-q]')) c.setAttribute('aria-pressed', String(c === b));
   const el = document.createElement('div');
   el.className = 'qa';
   el.innerHTML = `<div class="q">${esc(q.q)}</div><div class="a">${lines.map((l) => `<p>${esc(l)}</p>`).join('')}</div>`;
-  $('answers').append(el);
-  b.disabled = true;
+  $('answers').replaceChildren(el);
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 
